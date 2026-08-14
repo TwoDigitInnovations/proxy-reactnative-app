@@ -1,0 +1,93 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/assets/fonts/ABeeZee-Regular.ttf",
+      "sha1": "a5df8b185911469d302675c9ab231d19f973b03b"
+    },
+    {
+      "path": "src/assets/fonts/Inter-Bold.ttf",
+      "sha1": "02a6d84c459820d684dd6313df1128b18687f18a"
+    },
+    {
+      "path": "src/assets/fonts/Inter-Medium.ttf",
+      "sha1": "5a8e6f1c48a0e7537b6669b6f468a2ca42d090b1"
+    },
+    {
+      "path": "src/assets/fonts/Inter-Regular.ttf",
+      "sha1": "bbafc338617e3339c7f86dbbb368df2e3eb20c95"
+    },
+    {
+      "path": "src/assets/fonts/Inter-SemiBold.ttf",
+      "sha1": "4fbdc5e5e25d3c3f03daf889468a2e87d0dec865"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSans-Bold.ttf",
+      "sha1": "7c29ec062f3f73f224e64dd11cb704ac2187eb23"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSans-Medium.ttf",
+      "sha1": "4a9e6361de4c0de2e52ae6d95e52483fb7896a88"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSans-Regular.ttf",
+      "sha1": "5d3ec2eae34d8668672c148afc4a753563951857"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSans-SemiBold.ttf",
+      "sha1": "7fafb97e41659d7ae61e6ede83c598310ee740e5"
+    },
+    {
+      "path": "src/assets/fonts/Poppins-Bold.ttf",
+      "sha1": "78ed06c4acab68daa4244231d6fb853fe27a162b"
+    },
+    {
+      "path": "src/assets/fonts/Poppins-Medium.ttf",
+      "sha1": "2ec12a4b30827eed659d1e5a022b82a891d86206"
+    },
+    {
+      "path": "src/assets/fonts/Poppins-Regular.ttf",
+      "sha1": "3c0d37e4941a0f54221ee4b6c5071872f2497eba"
+    },
+    {
+      "path": "src/assets/fonts/Poppins-SemiBold.ttf",
+      "sha1": "56b52bb9ee3de77fb6c4cfb1c8a243b5aeea5a85"
+    },
+    {
+      "path": "src/assets/fonts/Raleway-Bold.ttf",
+      "sha1": "23b43e69c6b1ee4a3625ba65e8bfd14545ff8cc9"
+    },
+    {
+      "path": "src/assets/fonts/Raleway-Medium.ttf",
+      "sha1": "2c8853a0fd97442eaa8245dc9571e62792d08d7a"
+    },
+    {
+      "path": "src/assets/fonts/Raleway-Regular.ttf",
+      "sha1": "b6a5d5163ba11b7c6145af56f9672b712052da9a"
+    },
+    {
+      "path": "src/assets/fonts/Raleway-SemiBold.ttf",
+      "sha1": "9446784ab0ea43f1c2ae955ff1dbccf2fbaf594e"
+    },
+    {
+      "path": "src/assets/fonts/Roboto-Bold.ttf",
+      "sha1": "60ab55ebd3306ed3347c6ad375dc2025339581ec"
+    },
+    {
+      "path": "src/assets/fonts/Roboto-Medium.ttf",
+      "sha1": "9d2fb94fea4be9d0a6ccb69dd8d7122ca3138c37"
+    },
+    {
+      "path": "src/assets/fonts/Roboto-Regular.ttf",
+      "sha1": "23cbe02404a04405ebfd1c310fb1e9e44dc25712"
+    },
+    {
+      "path": "src/assets/fonts/Roboto-SemiBold.ttf",
+      "sha1": "5ae022c7be53da95caa47e99d3aa1c8d4cfbf383"
+    },
+    {
+      "path": "src/assets/fonts/SF-Pro-Text-Regular.otf",
+      "sha1": "85b4043974a2a3be5afbcc9ea2becab072d2cd8f"
+    }
+  ]
+}
