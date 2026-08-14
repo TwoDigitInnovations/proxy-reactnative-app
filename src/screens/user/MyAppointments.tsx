@@ -10,10 +10,10 @@ import { appointmentApi } from '../../api/endpoints';
 import { usePaginatedList } from '../../hooks/usePaginatedList';
 import { colors } from '../../theme/colors';
 import type { Appointment } from '../../types/models';
-import type { RootStackParamList } from '../../navigation/types';
+import type { MyAppointmentsStackParamList } from '../../navigation/types';
 
 export default function MyAppointments() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<MyAppointmentsStackParamList>>();
 
   const fetchPage = useCallback(async (page: number, limit: number) => {
     const res: any = await appointmentApi.getAppointmentByUser({ page, limit });

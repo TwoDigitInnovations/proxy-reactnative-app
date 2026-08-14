@@ -7,7 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PageHeader } from '../../components/PageHeader';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme/colors';
-import type { RootStackParamList } from '../../navigation/types';
+import type { RootStackParamList, SettingsStackParamList } from '../../navigation/types';
+
+type NavigationProp = NativeStackNavigationProp<SettingsStackParamList & RootStackParamList>;
 
 const LANGUAGES: { code: 'en' | 'fr'; label: string }[] = [
   { code: 'en', label: 'English' },
@@ -24,7 +26,7 @@ function SettingsRow({ label, onPress }: { label: string; onPress: () => void })
 }
 
 export default function Settings() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NavigationProp>();
   const { logout } = useAuth();
   const [language, setLanguage] = useState<'en' | 'fr'>('en');
 

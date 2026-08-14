@@ -11,9 +11,9 @@ import HistoryIconSelected from '../assets/tabsIcon/tabs-icon-3selected.svg';
 import SettingsIcon from '../assets/tabsIcon/tabs-icon-4.svg';
 import SettingsIconSelected from '../assets/tabsIcon/tabs-icon-4selected.svg';
 import HomeProvider from '../screens/provider/HomeProvider';
-import MyAppointmentsProvider from '../screens/provider/MyAppointmentsProvider';
 import HistoryProvider from '../screens/provider/HistoryProvider';
-import SettingsProvider from '../screens/provider/SettingsProvider';
+import { MyAppointmentsProviderStack } from './MyAppointmentsProviderStack';
+import { SettingsProviderStack } from './SettingsProviderStack';
 import type { ProviderTabParamList } from './types';
 import { getTabBarStyle, tabBarLabelStyle, tabBarActiveTintColor, tabBarInactiveTintColor } from './tabBarStyle';
 
@@ -46,11 +46,11 @@ export function ProviderTabs() {
       <Tab.Screen name="HomeProvider" component={HomeProvider} options={{ title: 'Home' }} />
       <Tab.Screen
         name="MyAppointmentsProvider"
-        component={MyAppointmentsProvider}
+        component={MyAppointmentsProviderStack}
         options={{ title: 'Appointments' }}
       />
       <Tab.Screen name="HistoryProvider" component={HistoryProvider} options={{ title: 'History' }} />
-      <Tab.Screen name="SettingsProvider" component={SettingsProvider} options={{ title: 'Settings' }} />
+      <Tab.Screen name="SettingsProvider" component={SettingsProviderStack} options={{ title: 'Settings' }} />
     </Tab.Navigator>
   );
 }

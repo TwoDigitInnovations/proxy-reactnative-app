@@ -7,7 +7,7 @@ import { appointmentApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { colors } from '../../theme/colors';
 import type { Appointment } from '../../types/models';
-import type { RootStackParamList } from '../../navigation/types';
+import type { MyAppointmentsStackParamList } from '../../navigation/types';
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -19,7 +19,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function PurposeOfVisit() {
-  const route = useRoute<RouteProp<RootStackParamList, 'PurposeOfVisit'>>();
+  const route = useRoute<RouteProp<MyAppointmentsStackParamList, 'PurposeOfVisit'>>();
   const { appointmentId } = route.params;
 
   const [appointment, setAppointment] = useState<Appointment | null>(null);

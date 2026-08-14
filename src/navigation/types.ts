@@ -3,15 +3,9 @@ export type RootStackParamList = {
   SignUp: undefined;
   ForgotPassword: undefined;
   Tabs: undefined;
-  MyAppointmentsDetails: { appointmentId: string };
-  PurposeOfVisit: { appointmentId: string };
   PaymentSuccess: { appointmentId: string };
   PrivacyPolicy: undefined;
   TermsAndConditions: undefined;
-  Profile: undefined;
-  MyAppointmentsDetailsProvider: { appointmentId: string };
-  ProfileProvider: undefined;
-  MyServiceProvider: undefined;
 };
 
 export type UserTabParamList = {
@@ -26,4 +20,26 @@ export type ProviderTabParamList = {
   MyAppointmentsProvider: undefined;
   HistoryProvider: undefined;
   SettingsProvider: undefined;
+};
+
+export type MyAppointmentsStackParamList = {
+  MyAppointments: undefined;
+  MyAppointmentsDetails: { appointmentId: string };
+  PurposeOfVisit: { appointmentId: string };
+};
+
+export type SettingsStackParamList = {
+  Settings: undefined;
+  Profile: undefined;
+};
+
+export type MyAppointmentsProviderStackParamList = {
+  MyAppointmentsProvider: undefined;
+  MyAppointmentsDetailsProvider: { appointmentId: string };
+};
+
+export type SettingsProviderStackParamList = {
+  SettingsProvider: undefined;
+  ProfileProvider: undefined;
+  MyServiceProvider: undefined;
 };

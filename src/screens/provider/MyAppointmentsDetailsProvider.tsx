@@ -9,7 +9,7 @@ import { ApiError } from '../../api/client';
 import { useUi } from '../../context/UiContext';
 import { colors } from '../../theme/colors';
 import type { Appointment } from '../../types/models';
-import type { RootStackParamList } from '../../navigation/types';
+import type { MyAppointmentsProviderStackParamList } from '../../navigation/types';
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -21,7 +21,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function MyAppointmentsDetailsProvider() {
-  const route = useRoute<RouteProp<RootStackParamList, 'MyAppointmentsDetailsProvider'>>();
+  const route = useRoute<RouteProp<MyAppointmentsProviderStackParamList, 'MyAppointmentsDetailsProvider'>>();
   const { appointmentId } = route.params;
   const { showLoading, hideLoading, showToast } = useUi();
 

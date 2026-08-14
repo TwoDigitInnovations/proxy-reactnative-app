@@ -8,11 +8,11 @@ import { appointmentApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { colors } from '../../theme/colors';
 import type { Appointment } from '../../types/models';
-import type { RootStackParamList } from '../../navigation/types';
+import type { MyAppointmentsStackParamList } from '../../navigation/types';
 
 export default function MyAppointmentsDetails() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<RootStackParamList, 'MyAppointmentsDetails'>>();
+  const navigation = useNavigation<NativeStackNavigationProp<MyAppointmentsStackParamList>>();
+  const route = useRoute<RouteProp<MyAppointmentsStackParamList, 'MyAppointmentsDetails'>>();
   const { appointmentId } = route.params;
 
   const [appointment, setAppointment] = useState<Appointment | null>(null);

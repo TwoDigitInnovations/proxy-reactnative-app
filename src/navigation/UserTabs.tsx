@@ -11,9 +11,9 @@ import HistoryIconSelected from '../assets/tabsIcon/tabs-icon-3selected.svg';
 import SettingsIcon from '../assets/tabsIcon/tabs-icon-4.svg';
 import SettingsIconSelected from '../assets/tabsIcon/tabs-icon-4selected.svg';
 import Home from '../screens/user/Home';
-import MyAppointments from '../screens/user/MyAppointments';
 import History from '../screens/user/History';
-import Settings from '../screens/user/Settings';
+import { MyAppointmentsStack } from './MyAppointmentsStack';
+import { SettingsStack } from './SettingsStack';
 import type { UserTabParamList } from './types';
 import { getTabBarStyle, tabBarLabelStyle, tabBarActiveTintColor, tabBarInactiveTintColor } from './tabBarStyle';
 
@@ -44,9 +44,9 @@ export function UserTabs() {
       })}
     >
       <Tab.Screen name="Home" component={Home} />
-      <Tab.Screen name="MyAppointments" component={MyAppointments} options={{ title: 'Appointments' }} />
+      <Tab.Screen name="MyAppointments" component={MyAppointmentsStack} options={{ title: 'Appointments' }} />
       <Tab.Screen name="History" component={History} />
-      <Tab.Screen name="Settings" component={Settings} />
+      <Tab.Screen name="Settings" component={SettingsStack} />
     </Tab.Navigator>
   );
 }

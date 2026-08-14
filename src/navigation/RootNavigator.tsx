@@ -8,15 +8,9 @@ import { ProviderTabs } from './ProviderTabs';
 import SignIn from '../screens/auth/SignIn';
 import SignUp from '../screens/auth/SignUp';
 import ForgotPassword from '../screens/auth/ForgotPassword';
-import MyAppointmentsDetails from '../screens/user/MyAppointmentsDetails';
-import PurposeOfVisit from '../screens/user/PurposeOfVisit';
 import PaymentSuccess from '../screens/user/PaymentSuccess';
 import PrivacyPolicy from '../screens/user/PrivacyPolicy';
 import TermsAndConditions from '../screens/user/TermsAndConditions';
-import Profile from '../screens/user/Profile';
-import MyAppointmentsDetailsProvider from '../screens/provider/MyAppointmentsDetailsProvider';
-import ProfileProvider from '../screens/provider/ProfileProvider';
-import MyServiceProvider from '../screens/provider/MyServiceProvider';
 import type { RootStackParamList } from './types';
 import { colors } from '../theme/colors';
 
@@ -51,35 +45,9 @@ export function RootNavigator() {
           <>
             <Stack.Screen name="Tabs" component={RoleTabs} />
             <Stack.Screen
-              name="MyAppointmentsDetails"
-              component={MyAppointmentsDetails}
-              options={{ headerShown: true, title: 'Appointment Details' }}
-            />
-            <Stack.Screen
-              name="PurposeOfVisit"
-              component={PurposeOfVisit}
-              options={{ headerShown: true, title: 'Purpose of Visit' }}
-            />
-            <Stack.Screen
               name="PaymentSuccess"
               component={PaymentSuccess}
               options={{ headerShown: true, title: 'Confirmation' }}
-            />
-            <Stack.Screen name="Profile" component={Profile} options={{ headerShown: true, title: 'Profile' }} />
-            <Stack.Screen
-              name="MyAppointmentsDetailsProvider"
-              component={MyAppointmentsDetailsProvider}
-              options={{ headerShown: true, title: 'Appointment Details' }}
-            />
-            <Stack.Screen
-              name="ProfileProvider"
-              component={ProfileProvider}
-              options={{ headerShown: true, title: 'Profile' }}
-            />
-            <Stack.Screen
-              name="MyServiceProvider"
-              component={MyServiceProvider}
-              options={{ headerShown: true, title: 'My Service' }}
             />
           </>
         )}

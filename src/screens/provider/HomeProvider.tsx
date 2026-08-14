@@ -13,7 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useUi } from '../../context/UiContext';
 import { colors } from '../../theme/colors';
 import type { Appointment } from '../../types/models';
-import type { RootStackParamList } from '../../navigation/types';
+import type { ProviderTabParamList } from '../../navigation/types';
 
 interface VisitorsStatus {
   totalAppoint: number;
@@ -22,7 +22,7 @@ interface VisitorsStatus {
 }
 
 export default function HomeProvider() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<ProviderTabParamList>>();
   const { userDetail, updateUserDetail } = useAuth();
   const { showToast } = useUi();
 
@@ -114,7 +114,7 @@ export default function HomeProvider() {
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
-        <Text style={styles.seeAll} onPress={() => navigation.navigate('Tabs')}>
+        <Text style={styles.seeAll} onPress={() => navigation.navigate('MyAppointmentsProvider')}>
           See All
         </Text>
       </View>
@@ -131,7 +131,7 @@ export default function HomeProvider() {
               dateLabel={moment(item.full_date).format('DD MMM YYYY, h:mm A')}
               status={item.status}
               avatarUrl={item.user?.profile}
-              onPress={() => navigation.navigate('MyAppointmentsDetailsProvider', { appointmentId: item._id })}
+              onPress={() => navigation.navigate('MyAppointmentsProvider')}
             />
           ))
         )}
