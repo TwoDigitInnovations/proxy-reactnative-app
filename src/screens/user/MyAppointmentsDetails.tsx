@@ -74,6 +74,16 @@ export default function MyAppointmentsDetails() {
         <Text style={styles.sectionText}>{appointment.purpose_of_visit}</Text>
       </View>
 
+      {appointment.paymentMethod ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Receipt</Text>
+          <Text style={styles.sectionText}>Method: {appointment.paymentMethod}</Text>
+          <Text style={styles.sectionText}>Amount: ${appointment.paymentAmount?.toFixed(2) ?? '5.50'}</Text>
+          {appointment.transactionId ? <Text style={styles.sectionText}>Txn ID: {appointment.transactionId}</Text> : null}
+          <Text style={styles.sectionText}>Status: {appointment.paymentStatus ?? 'Completed'}</Text>
+        </View>
+      ) : null}
+
       <PrimaryButton
         title="View Purpose of Visit"
         style={styles.button}

@@ -42,6 +42,7 @@ export const serviceApi = {
   createService: (data: FormData) => apiClient.post('service/createService', data),
   getService: () => apiClient.get('service/getService'),
   updateService: (data: FormData) => apiClient.post('service/updateService', data),
+  deleteService: (id: string) => apiClient.delete(`service/deleteService/${id}`),
 };
 
 export interface CreateAppointmentPayload {
@@ -56,6 +57,10 @@ export interface CreateAppointmentPayload {
   full_date: string;
   service_provider: string;
   service_ref: string;
+  paymentMethod?: string;
+  paymentAmount?: number;
+  transactionId?: string;
+  paymentStatus?: string;
 }
 
 export interface PageParams {

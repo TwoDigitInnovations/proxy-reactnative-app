@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Text } from '../../components/Text';
 import moment from 'moment';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { EmptyState } from '../../components/EmptyState';
 import { categoryApi, serviceApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { useUi } from '../../context/UiContext';
@@ -22,6 +23,9 @@ interface PlacePrediction {
 
 export default function MyServiceProvider() {
   const { showLoading, hideLoading, showToast } = useUi();
+
+  const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
+  const [servicesList, setServicesList] = useState<ServiceListing[]>([]);
 
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
@@ -43,33 +47,82 @@ export default function MyServiceProvider() {
 
   const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [categoryRes, serviceRes]: [any, any] = await Promise.all([categoryApi.getCategory(), serviceApi.getService()]);
-        setCategories(categoryRes?.data ?? []);
+  function resetForm(catList = categories) {
+    setServiceId(null);
+    setServiceName('');
+    setAddress('');
+    setLocation(null);
+    setSlots([]);
+    setDescription('');
+    setExistingPhotos([]);
+    setNewPhotos([]);
+    setSubmitted(false);
+    if (catList.length > 0) {
+      setCategoryId(catList[0]._id);
+    }
+  }
 
-        const service: ServiceListing | null = serviceRes?.data ?? null;
-        if (service) {
-          setServiceId(service._id);
-          setServiceName(service.service_name ?? '');
-          setAddress(service.address ?? '');
-          setDescription(service.service_description ?? '');
-          setSlots(service.service_slot ?? []);
-          setExistingPhotos(service.service_photo ?? []);
-          setCategoryId(typeof service.category === 'string' ? service.category : (service.category as any)?._id);
-          if (service.service_location?.coordinates) {
-            setLocation({ lng: service.service_location.coordinates[0], lat: service.service_location.coordinates[1] });
-          }
-        } else if (categoryRes?.data?.length) {
-          setCategoryId(categoryRes.data[0]._id);
-        }
-      } catch (err) {
-        showToast(err instanceof ApiError ? err.message : 'Unable to load service');
-      }
-    })();
+  function startAddNewService() {
+    resetForm();
+    setViewMode('form');
+  }
+
+  function startEditService(service: ServiceListing) {
+    setServiceId(service._id);
+    setServiceName(service.service_name ?? '');
+    setAddress(service.address ?? '');
+    setDescription(service.service_description ?? '');
+    setSlots(service.service_slot ?? []);
+    setExistingPhotos(service.service_photo ?? []);
+    setNewPhotos([]);
+    setSubmitted(false);
+    setCategoryId(typeof service.category === 'string' ? service.category : (service.category as any)?._id);
+    if (service.service_location?.coordinates) {
+      setLocation({ lng: service.service_location.coordinates[0], lat: service.service_location.coordinates[1] });
+    }
+    setViewMode('form');
+  }
+
+  async function loadServicesList() {
+    try {
+      const [categoryRes, serviceRes]: [any, any] = await Promise.all([categoryApi.getCategory(), serviceApi.getService()]);
+      const catList: Category[] = categoryRes?.data ?? [];
+      setCategories(catList);
+
+      const resData = serviceRes?.data;
+      const list: ServiceListing[] = Array.isArray(resData) ? resData : resData ? [resData] : [];
+      setServicesList(list);
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'Unable to load services');
+    }
+  }
+
+  useEffect(() => {
+    loadServicesList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function handleDeleteService(item: ServiceListing) {
+    Alert.alert('Delete Service', `Are you sure you want to delete "${item.service_name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          showLoading();
+          try {
+            await serviceApi.deleteService(item._id);
+            showToast('Service deleted successfully');
+            await loadServicesList();
+          } catch (err) {
+            showToast(err instanceof ApiError ? err.message : 'Failed to delete service');
+          } finally {
+            hideLoading();
+          }
+        },
+      },
+    ]);
+  }
 
   function onChangeAddress(text: string) {
     setAddress(text);
@@ -103,6 +156,23 @@ export default function MyServiceProvider() {
       if (loc) setLocation({ lat: loc.lat, lng: loc.lng });
     } catch {
       showToast('Unable to find that address');
+    }
+  }
+
+  function onTimeChange(event: any, selectedDate?: Date) {
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+      if (event.type === 'set' && selectedDate) {
+        setPickerTime(selectedDate);
+        const formatted = moment(selectedDate).format('HH:mm');
+        if (!slots.includes(formatted)) {
+          setSlots(prev => [...prev, formatted].sort());
+        }
+      }
+    } else {
+      if (selectedDate) {
+        setPickerTime(selectedDate);
+      }
     }
   }
 
@@ -164,12 +234,15 @@ export default function MyServiceProvider() {
 
       if (serviceId) {
         await serviceApi.updateService(formData);
+        showToast('Service updated successfully');
       } else {
         await serviceApi.createService(formData);
+        showToast('New service created successfully');
       }
-      showToast('Service saved successfully');
       setSubmitted(false);
       setNewPhotos([]);
+      await loadServicesList();
+      setViewMode('list');
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : 'Something went wrong');
     } finally {
@@ -177,8 +250,84 @@ export default function MyServiceProvider() {
     }
   }
 
+  function getCategoryName(catId: any) {
+    const idStr = typeof catId === 'string' ? catId : catId?._id;
+    const found = categories.find(c => c._id === idStr);
+    return found ? found.name : 'Category';
+  }
+
+  if (viewMode === 'list') {
+    return (
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.topHeader}>
+          <View>
+            <Text style={styles.headerTitle}>My Services</Text>
+            <Text style={styles.headerSubtitle}>{servicesList.length} services created</Text>
+          </View>
+          <TouchableOpacity style={styles.createBtn} onPress={startAddNewService}>
+            <Text style={styles.createBtnText}>+ Add Service</Text>
+          </TouchableOpacity>
+        </View>
+
+        {servicesList.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <EmptyState message="No services created yet." />
+            <PrimaryButton title="+ Create First Service" onPress={startAddNewService} style={styles.firstServiceBtn} />
+          </View>
+        ) : (
+          <View style={styles.cardList}>
+            {servicesList.map(item => (
+              <View key={item._id} style={styles.serviceCard}>
+                {item.service_photo?.[0] ? (
+                  <Image source={{ uri: item.service_photo[0] }} style={styles.cardImg} />
+                ) : (
+                  <View style={[styles.cardImg, styles.cardImgPlaceholder]}>
+                    <Text style={styles.placeholderInitial}>{(item.service_name ?? 'S').charAt(0).toUpperCase()}</Text>
+                  </View>
+                )}
+
+                <View style={styles.cardInfo}>
+                  <View style={styles.cardHeaderRow}>
+                    <Text style={styles.cardTitle}>{item.service_name}</Text>
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryBadgeText}>{getCategoryName(item.category)}</Text>
+                    </View>
+                  </View>
+
+                  {item.address ? (
+                    <Text style={styles.cardAddress} numberOfLines={1}>
+                      📍 {item.address}
+                    </Text>
+                  ) : null}
+
+                  <Text style={styles.cardSlots}>⏰ {item.service_slot?.length ?? 0} Available Slots</Text>
+
+                  <View style={styles.cardActions}>
+                    <TouchableOpacity style={styles.editBtn} onPress={() => startEditService(item)}>
+                      <Text style={styles.editBtnText}>✏️ Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteService(item)}>
+                      <Text style={styles.deleteBtnText}>🗑️ Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
+      <View style={styles.formHeader}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => setViewMode('list')}>
+          <Text style={styles.backBtnText}>← Back to List</Text>
+        </TouchableOpacity>
+        <Text style={styles.formTitle}>{serviceId ? 'Edit Service' : 'Add New Service'}</Text>
+      </View>
+
       <TextField label="Service Name" value={serviceName} onChangeText={setServiceName} error={nameError} />
 
       <View style={styles.fieldWrap}>
@@ -229,13 +378,14 @@ export default function MyServiceProvider() {
           <DateTimePicker
             value={pickerTime}
             mode="time"
-            display="spinner"
-            onChange={(_, date) => {
-              if (date) setPickerTime(date);
-            }}
+            is24Hour={false}
+            display={Platform.OS === 'android' ? 'default' : 'spinner'}
+            onChange={onTimeChange}
           />
         )}
-        {showTimePicker && <PrimaryButton title="Add" onPress={addSlot} style={styles.confirmSlotButton} />}
+        {showTimePicker && Platform.OS === 'ios' && (
+          <PrimaryButton title="Add" onPress={addSlot} style={styles.confirmSlotButton} />
+        )}
       </View>
 
       <TextField label="Description" value={description} onChangeText={setDescription} multiline />
@@ -267,13 +417,55 @@ export default function MyServiceProvider() {
         </View>
       </View>
 
-      <PrimaryButton title={serviceId ? 'Update Service' : 'Create Service'} onPress={handleSave} style={styles.button} />
+      <PrimaryButton title={serviceId ? 'Update Service' : 'Save Service'} onPress={handleSave} style={styles.button} />
+      <TouchableOpacity style={styles.cancelBtn} onPress={() => setViewMode('list')}>
+        <Text style={styles.cancelBtnText}>Cancel</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { padding: 20, paddingBottom: 60 },
+  topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: colors.textDarker },
+  headerSubtitle: { fontSize: 13, color: colors.gray, marginTop: 2 },
+  createBtn: { backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10 },
+  createBtnText: { color: colors.white, fontSize: 13, fontWeight: '600' },
+  emptyContainer: { marginTop: 40, alignItems: 'center' },
+  firstServiceBtn: { marginTop: 20, width: '80%' },
+  cardList: { gap: 16 },
+  serviceCard: {
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.backgroundLightAlt,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  cardImg: { width: '100%', height: 140 },
+  cardImgPlaceholder: { backgroundColor: colors.backgroundLight, alignItems: 'center', justifyContent: 'center' },
+  placeholderInitial: { fontSize: 36, fontWeight: '700', color: colors.primary },
+  cardInfo: { padding: 16 },
+  cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  cardTitle: { fontSize: 17, fontWeight: '700', color: colors.textDarker, flex: 1 },
+  categoryBadge: { backgroundColor: colors.backgroundLight, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  categoryBadgeText: { fontSize: 11, color: colors.primary, fontWeight: '600' },
+  cardAddress: { fontSize: 13, color: colors.gray, marginTop: 4 },
+  cardSlots: { fontSize: 13, color: colors.textDark, fontWeight: '500', marginTop: 6 },
+  cardActions: { flexDirection: 'row', gap: 12, marginTop: 14 },
+  editBtn: { flex: 1, borderWidth: 1, borderColor: colors.primary, borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
+  editBtnText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+  deleteBtn: { flex: 1, borderWidth: 1, borderColor: '#e53935', borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
+  deleteBtnText: { fontSize: 13, color: '#e53935', fontWeight: '600' },
+  formHeader: { marginBottom: 16 },
+  backBtn: { marginBottom: 10 },
+  backBtnText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
+  formTitle: { fontSize: 20, fontWeight: '700', color: colors.textDarker },
   fieldWrap: { marginTop: 16 },
   label: { fontSize: 13, color: colors.gray, marginBottom: 6 },
   input: {
@@ -324,5 +516,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addPhotoText: { fontSize: 24, color: colors.border },
-  button: { marginTop: 30 },
+  button: { marginTop: 24 },
+  cancelBtn: { alignItems: 'center', marginTop: 14, paddingVertical: 10 },
+  cancelBtnText: { color: colors.gray, fontSize: 14 },
 });

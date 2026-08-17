@@ -25,6 +25,9 @@ export interface ServiceListing {
     coordinates: [number, number];
   };
   user: ServiceProviderUser;
+  queueCount?: number;
+  estimatedWaitMinutes?: number;
+  crowdLevel?: 'Low' | 'Moderate' | 'High';
 }
 
 export interface Appointment {
@@ -39,6 +42,10 @@ export interface Appointment {
   full_date: string;
   status: 'Pending' | 'Completed';
   ticketNumber?: string;
+  paymentMethod?: 'Orange Money' | 'PayPal' | 'Stripe' | 'Credit Card';
+  paymentAmount?: number;
+  transactionId?: string;
+  paymentStatus?: 'Completed' | 'Pending';
   service?: string;
   service_ref?: string;
   service_provider?: ServiceProviderUser;
@@ -57,4 +64,7 @@ export interface UserProfile {
   isAvailable?: boolean;
   document?: string[];
   status?: 'Pending' | 'Verified' | 'Suspended';
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 }

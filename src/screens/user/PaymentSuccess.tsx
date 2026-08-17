@@ -70,6 +70,10 @@ export default function PaymentSuccess() {
         <DetailRow label="Phone" value={appointment.phone} />
         <DetailRow label="Gender" value={appointment.gender} />
         <DetailRow label="Purpose of Visit" value={appointment.purpose_of_visit} />
+        <DetailRow label="Payment Method" value={appointment.paymentMethod ?? 'Orange Money'} />
+        <DetailRow label="Amount Paid" value={`$${appointment.paymentAmount ? appointment.paymentAmount.toFixed(2) : '5.50'}`} />
+        <DetailRow label="Transaction ID" value={appointment.transactionId ?? '-'} />
+        <DetailRow label="Payment Status" value={appointment.paymentStatus ?? 'Completed'} />
       </View>
 
       <PrimaryButton title="Go to Home" style={styles.button} onPress={() => navigation.navigate('Tabs')} />

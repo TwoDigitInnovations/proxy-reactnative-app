@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const BASE_URL = 'https://proxyapp-backend.onrender.com/';
+// export const BASE_URL = 'https://proxyapp-backend.onrender.com/';
+
+export const BASE_URL = 'http://192.168.1.12:3001/';
 
 export class ApiError extends Error {
   status: number;

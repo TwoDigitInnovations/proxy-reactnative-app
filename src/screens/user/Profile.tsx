@@ -1,5 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text } from '../../components/Text';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -9,7 +19,13 @@ import { useAuth } from '../../context/AuthContext';
 import { useUi } from '../../context/UiContext';
 import { pickImage } from '../../utils/imagePicker';
 import { colors } from '../../theme/colors';
+import { GOOGLE_MAPS_API_KEY } from '../../config/maps';
 import type { UserProfile } from '../../types/models';
+
+interface PlacePrediction {
+  place_id: string;
+  description: string;
+}
 
 export default function Profile() {
   const { userDetail, updateUserDetail } = useAuth();
@@ -19,10 +35,16 @@ export default function Profile() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [latitude, setLatitude] = useState<number | undefined>(undefined);
+  const [longitude, setLongitude] = useState<number | undefined>(undefined);
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [newPhoto, setNewPhoto] = useState<{ uri: string; type: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
+
+  const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
+  const predictionsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -34,6 +56,9 @@ export default function Profile() {
           setName(profile.name ?? '');
           setEmail(profile.email ?? '');
           setPhone(profile.phone ?? '');
+          setAddress(profile.address ?? '');
+          setLatitude(profile.latitude);
+          setLongitude(profile.longitude);
           setPhotoUri(profile.profile);
         }
       } catch (err) {
@@ -55,6 +80,45 @@ export default function Profile() {
     setNewPhoto({ uri: asset.uri, type: asset.type ?? 'image/jpeg', name: asset.fileName ?? 'profile.jpg' });
   }
 
+  function onChangeAddressText(text: string) {
+    setAddress(text);
+    if (!isEdit) return;
+    if (predictionsTimer.current) clearTimeout(predictionsTimer.current);
+    if (!text) {
+      setPredictions([]);
+      return;
+    }
+    predictionsTimer.current = setTimeout(async () => {
+      try {
+        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+          text,
+        )}&key=${GOOGLE_MAPS_API_KEY}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        setPredictions(json?.predictions ?? []);
+      } catch {
+        setPredictions([]);
+      }
+    }, 400);
+  }
+
+  async function onSelectPrediction(prediction: PlacePrediction) {
+    setAddress(prediction.description);
+    setPredictions([]);
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${prediction.place_id}&fields=geometry&key=${GOOGLE_MAPS_API_KEY}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const loc = json?.result?.geometry?.location;
+      if (loc) {
+        setLatitude(loc.lat);
+        setLongitude(loc.lng);
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
   const nameError = submitted && !name ? 'Name is required.' : undefined;
   const emailError = submitted && !email ? 'Email is required.' : undefined;
 
@@ -64,20 +128,58 @@ export default function Profile() {
 
     showLoading();
     try {
+      let lat = latitude;
+      let lng = longitude;
+
+      if (address && (lat === undefined || lng === undefined)) {
+        try {
+          const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+            address,
+          )}&key=${GOOGLE_MAPS_API_KEY}`;
+          const geoRes = await fetch(geoUrl);
+          const geoJson = await geoRes.json();
+          const location = geoJson?.results?.[0]?.geometry?.location;
+          if (location) {
+            lat = location.lat;
+            lng = location.lng;
+            setLatitude(lat);
+            setLongitude(lng);
+          }
+        } catch {
+          // Geocode fallback
+        }
+      }
+
       const formData = new FormData();
       formData.append('name', name);
       formData.append('email', email);
       formData.append('phone', phone);
+      formData.append('address', address);
+      if (lat !== undefined) formData.append('latitude', String(lat));
+      if (lng !== undefined) formData.append('longitude', String(lng));
+
       if (newPhoto) {
         formData.append('profile', newPhoto as unknown as Blob);
       }
+
       const res: any = await authApi.updateProfile(formData);
-      if (res?.data && userDetail) {
-        await updateUserDetail({ ...userDetail, ...res.data });
+      const updatedUser = res?.data || {};
+
+      if (lat !== undefined && lng !== undefined) {
+        await AsyncStorage.setItem(
+          'user_saved_location',
+          JSON.stringify({ address, latitude: lat, longitude: lng }),
+        );
       }
-      showToast('Profile updated successfully');
+
+      if (userDetail) {
+        await updateUserDetail({ ...userDetail, ...updatedUser, address, latitude: lat, longitude: lng });
+      }
+
+      showToast('Profile & Location updated successfully');
       setIsEdit(false);
       setSubmitted(false);
+      setPredictions([]);
       setNewPhoto(null);
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : 'Something went wrong');
@@ -91,40 +193,69 @@ export default function Profile() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll}>
-      <TouchableOpacity onPress={isEdit ? handlePickPhoto : undefined} style={styles.avatarWrap} activeOpacity={isEdit ? 0.7 : 1}>
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarInitial}>{(name || 'U').charAt(0).toUpperCase()}</Text>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <TouchableOpacity onPress={isEdit ? handlePickPhoto : undefined} style={styles.avatarWrap} activeOpacity={isEdit ? 0.7 : 1}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>{(name || 'U').charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
+          {isEdit ? <Text style={styles.editPhotoLabel}>Change Photo</Text> : null}
+        </TouchableOpacity>
+
+        <View style={styles.fullWidth}>
+          <TextField label="Name" value={name} onChangeText={setName} editable={isEdit} error={nameError} />
+          <TextField
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            editable={isEdit}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            error={emailError}
+          />
+          <TextField label="Phone" value={phone} onChangeText={setPhone} editable={isEdit} keyboardType="phone-pad" />
+          
+          <View style={styles.addressWrap}>
+            <TextField
+              label="Home / City Address"
+              value={address}
+              onChangeText={onChangeAddressText}
+              editable={isEdit}
+              placeholder="e.g. Rajajipuram, Lucknow, Uttar Pradesh"
+            />
+            {predictions.length > 0 && isEdit && (
+              <View style={styles.predictionsList}>
+                {predictions.map(item => (
+                  <TouchableOpacity
+                    key={item.place_id}
+                    style={styles.predictionRow}
+                    onPress={() => onSelectPrediction(item)}>
+                    <Text style={styles.predictionText} numberOfLines={1}>
+                      {item.description}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
+        </View>
+
+        {isEdit ? (
+          <PrimaryButton title="Save Profile & Location" onPress={handleSave} style={styles.button} />
+        ) : (
+          <PrimaryButton title="Edit Profile" onPress={() => setIsEdit(true)} style={styles.button} />
         )}
-        {isEdit ? <Text style={styles.editPhotoLabel}>Change Photo</Text> : null}
-      </TouchableOpacity>
-
-      <TextField label="Name" value={name} onChangeText={setName} editable={isEdit} error={nameError} />
-      <TextField
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        editable={isEdit}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        error={emailError}
-      />
-      <TextField label="Phone" value={phone} onChangeText={setPhone} editable={isEdit} keyboardType="phone-pad" />
-
-      {isEdit ? (
-        <PrimaryButton title="Save" onPress={handleSave} style={styles.button} />
-      ) : (
-        <PrimaryButton title="Edit Profile" onPress={() => setIsEdit(true)} style={styles.button} />
-      )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.white },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: 20, alignItems: 'center' },
   avatarWrap: { alignItems: 'center', marginBottom: 20 },
@@ -132,5 +263,22 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { backgroundColor: colors.backgroundLight, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: colors.primary, fontSize: 32, fontWeight: '700' },
   editPhotoLabel: { fontSize: 13, color: colors.primaryAlt, fontWeight: '600', marginTop: 8 },
+  fullWidth: { width: '100%' },
+  addressWrap: { position: 'relative', width: '100%', zIndex: 10 },
+  predictionsList: {
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    marginTop: -10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.backgroundLightAlt,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  predictionRow: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.backgroundLightAlt },
+  predictionText: { fontSize: 14, color: colors.textDark },
   button: { width: '100%', marginTop: 24 },
 });

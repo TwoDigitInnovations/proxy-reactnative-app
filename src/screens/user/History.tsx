@@ -10,6 +10,8 @@ import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme/colors';
 import type { Appointment } from '../../types/models';
 
+import { useFocusEffect } from '@react-navigation/native';
+
 export default function History() {
   const { userDetail } = useAuth();
   const userId = userDetail?.id ?? userDetail?._id;
@@ -24,6 +26,12 @@ export default function History() {
   );
 
   const { items, loading, refreshing, refresh, loadMore } = usePaginatedList<Appointment>(fetchPage);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
   return (
     <View style={styles.flex}>
