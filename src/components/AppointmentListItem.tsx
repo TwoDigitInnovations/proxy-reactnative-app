@@ -1,40 +1,49 @@
 import React from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from './Text';
+import { AppointmentStatus, StatusPill } from './StatusPill';
 import { colors } from '../theme/colors';
 
 interface AppointmentListItemProps {
   title: string;
   subtitle?: string;
   dateLabel: string;
-  status: 'Pending' | 'Completed';
+  status: AppointmentStatus;
   avatarUrl?: string;
   onPress?: () => void;
 }
 
 export function AppointmentListItem({ title, subtitle, dateLabel, status, avatarUrl, onPress }: AppointmentListItemProps) {
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} disabled={!onPress} activeOpacity={0.8}>
-      {avatarUrl ? (
-        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <Text style={styles.avatarInitial}>{title.charAt(0).toUpperCase()}</Text>
-        </View>
-      )}
-      <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={1}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {subtitle}
+    <TouchableOpacity style={styles.card} onPress={onPress} disabled={!onPress} activeOpacity={0.85}>
+      <View style={styles.topRow}>
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Text style={styles.avatarInitial}>{title.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+        <View style={styles.body}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
           </Text>
-        ) : null}
-        <Text style={styles.date}>{dateLabel}</Text>
+          {subtitle ? (
+            <Text style={styles.subtitle} numberOfLines={2}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {onPress ? <Text style={styles.chevron}>›</Text> : null}
       </View>
-      <View style={[styles.statusPill, status === 'Completed' ? styles.statusCompleted : styles.statusPending]}>
-        <Text style={styles.statusText}>{status}</Text>
+
+      <View style={styles.divider} />
+
+      <View style={styles.footerRow}>
+        <Text style={styles.date} numberOfLines={1}>
+          {dateLabel}
+        </Text>
+        <StatusPill status={status} />
       </View>
     </TouchableOpacity>
   );
@@ -42,24 +51,27 @@ export function AppointmentListItem({ title, subtitle, dateLabel, status, avatar
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.backgroundLightAlt,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 12,
+    shadowColor: colors.black,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
+  topRow: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 48, height: 48, borderRadius: 24, marginRight: 12 },
   avatarPlaceholder: { backgroundColor: colors.backgroundLight, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: colors.primary, fontSize: 18, fontWeight: '700' },
   body: { flex: 1 },
-  title: { fontSize: 15, fontWeight: '600', color: colors.textDark },
-  subtitle: { fontSize: 13, color: colors.gray, marginTop: 2 },
-  date: { fontSize: 12, color: colors.grayAlt, marginTop: 4 },
-  statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginLeft: 8 },
-  statusPending: { backgroundColor: colors.backgroundLight },
-  statusCompleted: { backgroundColor: '#DDF5E0' },
-  statusText: { fontSize: 11, fontWeight: '600', color: colors.textDark },
+  title: { fontSize: 15, fontWeight: '600', color: colors.textDarker },
+  subtitle: { fontSize: 13, color: colors.gray, marginTop: 3, lineHeight: 18 },
+  chevron: { fontSize: 24, color: colors.grayLight, marginLeft: 8, marginTop: -2 },
+  divider: { height: 1, backgroundColor: colors.backgroundLightAlt, marginVertical: 12 },
+  footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  date: { flex: 1, fontSize: 12, color: colors.grayAlt },
 });

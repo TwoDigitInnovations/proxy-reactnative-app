@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'r
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import moment from 'moment';
+import { Text } from '../../components/Text';
 import { PageHeader } from '../../components/PageHeader';
 import { AppointmentListItem } from '../../components/AppointmentListItem';
 import { EmptyState } from '../../components/EmptyState';
@@ -20,7 +21,7 @@ export default function MyAppointments() {
     return (res?.data ?? []) as Appointment[];
   }, []);
 
-  const { items, loading, refreshing, refresh, loadMore } = usePaginatedList<Appointment>(fetchPage);
+  const { items, loading, refreshing, hasMore, refresh, loadMore } = usePaginatedList<Appointment>(fetchPage);
 
   return (
     <View style={styles.flex}>
@@ -32,10 +33,25 @@ export default function MyAppointments() {
           data={items}
           keyExtractor={item => item._id}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.primary]} />}
           onEndReachedThreshold={0.4}
           onEndReached={loadMore}
-          ListEmptyComponent={<EmptyState message="You don't have any appointments yet." />}
+          ListHeaderComponent={
+            items.length > 0 ? <Text style={styles.caption}>Tap a booking to see its full details.</Text> : undefined
+          }
+          ListFooterComponent={
+            hasMore && items.length > 0 ? (
+              <ActivityIndicator style={styles.footerLoader} color={colors.primary} />
+            ) : undefined
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="📅"
+              title="No appointments yet"
+              message="Book a service from the home screen and it will show up here."
+            />
+          }
           renderItem={({ item }) => (
             <AppointmentListItem
               title={item.service_provider?.name ?? 'Provider'}
@@ -55,5 +71,7 @@ export default function MyAppointments() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.white },
   loading: { flex: 1 },
-  list: { padding: 20, flexGrow: 1 },
+  list: { paddingHorizontal: 20, paddingBottom: 24, flexGrow: 1 },
+  caption: { fontSize: 13, color: colors.gray, marginBottom: 14 },
+  footerLoader: { marginVertical: 12 },
 });
