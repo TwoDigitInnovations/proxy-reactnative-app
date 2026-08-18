@@ -1,3 +1,5 @@
+export type Gender = 'Male' | 'Female' | 'Other';
+
 export interface Category {
   _id: string;
   name: string;
@@ -67,4 +69,6 @@ export interface UserProfile {
   address?: string;
   latitude?: number;
   longitude?: number;
+  dob?: string;
+  gender?: Gender;
 }
