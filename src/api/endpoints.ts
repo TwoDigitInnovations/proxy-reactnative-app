@@ -91,3 +91,13 @@ export const appointmentApi = {
 export const contentApi = {
   getContent: () => apiClient.get('content/getContent'),
 };
+
+export interface CreateReportPayload {
+  category: string;
+  subject: string;
+  description: string;
+}
+
+export const reportApi = {
+  createReport: (data: CreateReportPayload) => apiClient.post('report/create', data),
+};

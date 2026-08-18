@@ -77,6 +77,7 @@ export default function Settings() {
 
       <View style={styles.section}>
         <SettingsRow label="Profile" onPress={() => navigation.navigate('Profile')} />
+        <SettingsRow label="Report a Problem" onPress={() => navigation.navigate('ReportProblem' as never)} />
         <SettingsRow label="Terms and Conditions" onPress={() => navigation.navigate('TermsAndConditions')} />
         <SettingsRow label="Privacy Policy" onPress={() => navigation.navigate('PrivacyPolicy')} />
       </View>

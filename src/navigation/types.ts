@@ -6,6 +6,7 @@ export type RootStackParamList = {
   PaymentSuccess: { appointmentId: string };
   PrivacyPolicy: undefined;
   TermsAndConditions: undefined;
+  ReportProblem: undefined;
 };
 
 export type UserTabParamList = {

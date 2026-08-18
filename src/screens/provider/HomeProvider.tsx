@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Switch, View, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from '../../components/Text';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -81,62 +81,76 @@ export default function HomeProvider() {
   }
 
   return (
-    <ScrollView
-      style={styles.flex}
-      contentContainerStyle={styles.scroll}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}>
-      <PageHeader title={`Hi, ${userDetail?.name ?? 'Provider'}`} />
-
-      <View style={styles.availabilityRow}>
-        <Text style={styles.availabilityLabel}>Available for appointments</Text>
-        <Switch
-          value={isAvailable}
-          onValueChange={toggleAvailability}
-          disabled={togglingAvailability}
-          trackColor={{ true: colors.primaryAlt, false: colors.grayLight }}
-        />
-      </View>
-
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{status?.totalAppoint ?? 0}</Text>
-          <Text style={styles.statLabel}>Total</Text>
+    <View style={styles.flex}>
+      {userDetail?.status === 'Suspended' && (
+        <View style={{ backgroundColor: '#ffebee', padding: 14, borderRadius: 10, marginHorizontal: 16, marginTop: 12, borderWidth: 1, borderColor: '#ef5350' }}>
+          <Text style={{ color: '#c62828', fontWeight: 'bold', fontSize: 16 }}>Account Suspended</Text>
+          <Text style={{ color: '#d32f2f', fontSize: 13, marginTop: 4 }}>Your account has been suspended by Admin. Please contact support.</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{status?.pendingAppoint ?? 0}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+      )}
+      {userDetail?.status === 'Pending' && (
+        <View style={{ backgroundColor: '#fff3e0', padding: 14, borderRadius: 10, marginHorizontal: 16, marginTop: 12, borderWidth: 1, borderColor: '#ffb74d' }}>
+          <Text style={{ color: '#e65100', fontWeight: 'bold', fontSize: 16 }}>Verification Pending</Text>
+          <Text style={{ color: '#ef6c00', fontSize: 13, marginTop: 4 }}>Your account is under verification by Admin.</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{status?.completedAppoint ?? 0}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
+      )}
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}>
+        <PageHeader title={`Hi, ${userDetail?.name ?? 'Provider'}`} />
+
+        <View style={styles.availabilityRow}>
+          <Text style={styles.availabilityLabel}>Available for appointments</Text>
+          <Switch
+            value={isAvailable}
+            onValueChange={toggleAvailability}
+            disabled={togglingAvailability}
+            trackColor={{ true: colors.primaryAlt, false: colors.grayLight }}
+          />
         </View>
-      </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
-        <Text style={styles.seeAll} onPress={() => navigation.navigate('MyAppointmentsProvider')}>
-          See All
-        </Text>
-      </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{status?.totalAppoint ?? 0}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{status?.pendingAppoint ?? 0}</Text>
+            <Text style={styles.statLabel}>Pending</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{status?.completedAppoint ?? 0}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+        </View>
 
-      <View style={styles.listWrap}>
-        {appointments.length === 0 ? (
-          <EmptyState message="No pending appointments." />
-        ) : (
-          appointments.map(item => (
-            <AppointmentListItem
-              key={item._id}
-              title={item.user?.name ?? 'Visitor'}
-              subtitle={item.purpose_of_visit}
-              dateLabel={moment(item.full_date).format('DD MMM YYYY, h:mm A')}
-              status={item.status}
-              avatarUrl={item.user?.profile}
-              onPress={() => navigation.navigate('MyAppointmentsProvider')}
-            />
-          ))
-        )}
-      </View>
-    </ScrollView>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('MyAppointmentsProvider' as never)}>
+            <Text style={styles.seeAll}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.listWrap}>
+          {appointments.length === 0 ? (
+            <EmptyState message="No pending appointments." />
+          ) : (
+            appointments.map(item => (
+              <AppointmentListItem
+                key={item._id}
+                title={item.user?.name ?? 'Visitor'}
+                subtitle={item.purpose_of_visit}
+                dateLabel={moment(item.full_date).format('DD MMM YYYY, h:mm A')}
+                status={item.status}
+                avatarUrl={item.user?.profile}
+                onPress={() => navigation.navigate('MyAppointmentsProvider' as never)}
+              />
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 

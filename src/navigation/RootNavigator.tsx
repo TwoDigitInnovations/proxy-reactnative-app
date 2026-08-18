@@ -11,6 +11,7 @@ import ForgotPassword from '../screens/auth/ForgotPassword';
 import PaymentSuccess from '../screens/user/PaymentSuccess';
 import PrivacyPolicy from '../screens/user/PrivacyPolicy';
 import TermsAndConditions from '../screens/user/TermsAndConditions';
+import ReportProblem from '../screens/user/ReportProblem';
 import type { RootStackParamList } from './types';
 import { colors } from '../theme/colors';
 
@@ -60,6 +61,11 @@ export function RootNavigator() {
           name="TermsAndConditions"
           component={TermsAndConditions}
           options={{ headerShown: true, title: 'Terms & Conditions' }}
+        />
+        <Stack.Screen
+          name="ReportProblem"
+          component={ReportProblem}
+          options={{ headerShown: true, title: 'Report a Problem' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
