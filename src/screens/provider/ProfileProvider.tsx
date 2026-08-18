@@ -12,6 +12,7 @@ import {
 import { Text } from '../../components/Text';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { InfoRow, SectionCard } from '../../components/SectionCard';
 import { authApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -26,38 +27,10 @@ interface ProfileSnapshot {
   name: string;
   email: string;
   phone: string;
+  company: string;
   aboutUs: string;
   photoUri?: string;
   documents: string[];
-}
-
-function InfoRow({ label, value, last }: { label: string; value?: string; last?: boolean }) {
-  return (
-    <View style={[styles.infoRow, last && styles.infoRowLast]}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={[styles.infoValue, !value && styles.infoValueEmpty]}>{value || 'Not added yet'}</Text>
-    </View>
-  );
-}
-
-function SectionCard({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {action}
-      </View>
-      {children}
-    </View>
-  );
 }
 
 export default function ProfileProvider() {
@@ -68,6 +41,7 @@ export default function ProfileProvider() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [company, setCompany] = useState('');
   const [aboutUs, setAboutUs] = useState('');
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [newPhoto, setNewPhoto] = useState<{ uri: string; type: string; name: string } | null>(null);
@@ -88,6 +62,7 @@ export default function ProfileProvider() {
           setName(profile.name ?? '');
           setEmail(profile.email ?? '');
           setPhone(profile.phone ?? '');
+          setCompany(profile.company ?? '');
           setAboutUs(profile.about_us ?? '');
           setPhotoUri(profile.profile);
           setExistingDocuments(profile.document ?? []);
@@ -105,7 +80,7 @@ export default function ProfileProvider() {
   }, []);
 
   function startEditing() {
-    snapshot.current = { name, email, phone, aboutUs, photoUri, documents: existingDocuments };
+    snapshot.current = { name, email, phone, company, aboutUs, photoUri, documents: existingDocuments };
     setIsEdit(true);
   }
 
@@ -115,6 +90,7 @@ export default function ProfileProvider() {
       setName(saved.name);
       setEmail(saved.email);
       setPhone(saved.phone);
+      setCompany(saved.company);
       setAboutUs(saved.aboutUs);
       setPhotoUri(saved.photoUri);
       setExistingDocuments(saved.documents);
@@ -164,6 +140,7 @@ export default function ProfileProvider() {
       formData.append('name', name);
       formData.append('email', email);
       formData.append('phone', phone);
+      formData.append('company', company);
       formData.append('about_us', aboutUs);
       formData.append('oldImages', JSON.stringify(existingDocuments));
       if (newPhoto) {
@@ -277,12 +254,21 @@ export default function ProfileProvider() {
                 placeholder="Enter your phone number"
                 style={styles.input}
               />
+              <TextField
+                label="Company"
+                value={company}
+                onChangeText={setCompany}
+                editable
+                placeholder="Enter your company or business name"
+                style={styles.input}
+              />
             </View>
           ) : (
             <View>
               <InfoRow label="Name" value={name} />
               <InfoRow label="Email" value={email} />
-              <InfoRow label="Phone" value={phone} last />
+              <InfoRow label="Phone" value={phone} />
+              <InfoRow label="Company" value={company} last />
             </View>
           )}
         </SectionCard>
@@ -430,28 +416,7 @@ const styles = StyleSheet.create({
   heroBadgeText: { fontSize: 12, fontWeight: '600', color: colors.primary },
   heroHint: { fontSize: 12, color: colors.grayAlt, marginTop: 12 },
 
-  card: {
-    marginTop: 16,
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.backgroundLightAlt,
-    shadowColor: colors.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: colors.textDarker },
   cardCount: { fontSize: 12, fontWeight: '600', color: colors.primary },
-
-  infoRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.backgroundLightAlt },
-  infoRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
-  infoLabel: { fontSize: 12, color: colors.gray, marginBottom: 4 },
-  infoValue: { fontSize: 15, color: colors.textDark },
   infoValueEmpty: { color: colors.grayLight },
 
   fieldStack: { marginTop: -4 },

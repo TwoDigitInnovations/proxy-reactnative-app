@@ -10,6 +10,8 @@ export const colors = {
   grayAlt: '#6B6B6B',
   grayLight: '#BFBFBF',
   overlayBlue: '#2048BD33',
+  success: '#1B7F3B',
+  successLight: '#E4F7E7',
   white: '#FFFFFF',
   black: '#000000',
 } as const;

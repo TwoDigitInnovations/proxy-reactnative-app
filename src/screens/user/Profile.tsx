@@ -15,6 +15,7 @@ import moment from 'moment';
 import { Text } from '../../components/Text';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { InfoRow, SectionCard } from '../../components/SectionCard';
 import { authApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -50,35 +51,6 @@ function parseDob(value?: string): Date | undefined {
   const parsed = moment.utc(value);
   if (!parsed.isValid()) return undefined;
   return new Date(parsed.year(), parsed.month(), parsed.date());
-}
-
-function InfoRow({ label, value, last }: { label: string; value?: string; last?: boolean }) {
-  return (
-    <View style={[styles.infoRow, last && styles.infoRowLast]}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={[styles.infoValue, !value && styles.infoValueEmpty]}>{value || 'Not added yet'}</Text>
-    </View>
-  );
-}
-
-function SectionCard({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {action}
-      </View>
-      {children}
-    </View>
-  );
 }
 
 export default function Profile() {
@@ -549,28 +521,7 @@ const styles = StyleSheet.create({
   heroBadgeText: { fontSize: 12, fontWeight: '600', color: colors.primary },
   heroHint: { fontSize: 12, color: colors.grayAlt, marginTop: 12 },
 
-  card: {
-    marginTop: 16,
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.backgroundLightAlt,
-    shadowColor: colors.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: colors.textDarker },
   cardCount: { fontSize: 12, fontWeight: '600', color: colors.primary },
-
-  infoRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.backgroundLightAlt },
-  infoRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
-  infoLabel: { fontSize: 12, color: colors.gray, marginBottom: 4 },
-  infoValue: { fontSize: 15, color: colors.textDark },
   infoValueEmpty: { color: colors.grayLight },
 
   fieldStack: { marginTop: -4 },

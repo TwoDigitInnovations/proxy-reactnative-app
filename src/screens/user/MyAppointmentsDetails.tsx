@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { Text } from '../../components/Text';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import moment from 'moment';
+import { Text } from '../../components/Text';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { InfoRow, SectionCard } from '../../components/SectionCard';
+import { StatusPill } from '../../components/StatusPill';
 import { appointmentApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { colors } from '../../theme/colors';
@@ -37,51 +40,82 @@ export default function MyAppointmentsDetails() {
   }, [appointmentId]);
 
   if (loading) {
-    return <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />;
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   if (error || !appointment) {
     return (
-      <View style={styles.loading}>
+      <View style={styles.centered}>
+        <View style={styles.errorIconCircle}>
+          <Text style={styles.errorIcon}>!</Text>
+        </View>
         <Text style={styles.errorText}>{error ?? 'Appointment not found'}</Text>
       </View>
     );
   }
 
   const provider = appointment.service_provider;
+  const providerName = provider?.name ?? 'Service Provider';
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll}>
-      {provider?.profile ? (
-        <Image source={{ uri: provider.profile }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <Text style={styles.avatarInitial}>{(provider?.name ?? 'P').charAt(0).toUpperCase()}</Text>
+    <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <View style={styles.hero}>
+        <View style={styles.avatarRing}>
+          {provider?.profile ? (
+            <Image source={{ uri: provider.profile }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>{providerName.charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
         </View>
-      )}
-      <Text style={styles.name}>{provider?.name ?? 'Service Provider'}</Text>
-      {provider?.phone ? <Text style={styles.meta}>{provider.phone}</Text> : null}
 
-      {provider?.about_us ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          <Text style={styles.sectionText}>{provider.about_us}</Text>
-        </View>
-      ) : null}
+        <Text style={styles.heroName} numberOfLines={1}>
+          {providerName}
+        </Text>
+        {provider?.phone ? (
+          <Text style={styles.heroMeta} numberOfLines={1}>
+            {provider.phone}
+          </Text>
+        ) : null}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Purpose of visit</Text>
-        <Text style={styles.sectionText}>{appointment.purpose_of_visit}</Text>
+        <StatusPill status={appointment.status} style={styles.heroStatus} />
       </View>
 
+      <SectionCard
+        title="Appointment"
+        action={
+          appointment.ticketNumber ? <Text style={styles.cardAction}>#{appointment.ticketNumber}</Text> : undefined
+        }>
+        <InfoRow label="Date & time" value={moment(appointment.full_date).format('DD MMM YYYY, h:mm A')} />
+        <InfoRow label="Booked for" value={appointment.name} />
+        <InfoRow label="Booked on" value={moment(appointment.createdAt).format('DD MMM YYYY')} last />
+      </SectionCard>
+
+      <SectionCard title="Purpose of visit">
+        <Text style={[styles.bodyText, !appointment.purpose_of_visit && styles.bodyTextEmpty]}>
+          {appointment.purpose_of_visit || 'No purpose added.'}
+        </Text>
+      </SectionCard>
+
+      {provider?.about_us ? (
+        <SectionCard title="About the provider">
+          <Text style={styles.bodyText}>{provider.about_us}</Text>
+        </SectionCard>
+      ) : null}
+
       {appointment.paymentMethod ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Receipt</Text>
-          <Text style={styles.sectionText}>Method: {appointment.paymentMethod}</Text>
-          <Text style={styles.sectionText}>Amount: ${appointment.paymentAmount?.toFixed(2) ?? '5.50'}</Text>
-          {appointment.transactionId ? <Text style={styles.sectionText}>Txn ID: {appointment.transactionId}</Text> : null}
-          <Text style={styles.sectionText}>Status: {appointment.paymentStatus ?? 'Completed'}</Text>
-        </View>
+        <SectionCard
+          title="Payment receipt"
+          action={<Text style={styles.cardAction}>{appointment.paymentStatus ?? 'Completed'}</Text>}>
+          <InfoRow label="Method" value={appointment.paymentMethod} />
+          <InfoRow label="Amount" value={`$${appointment.paymentAmount?.toFixed(2) ?? '5.50'}`} />
+          <InfoRow label="Transaction ID" value={appointment.transactionId} last />
+        </SectionCard>
       ) : null}
 
       <PrimaryButton
@@ -94,16 +128,50 @@ export default function MyAppointmentsDetails() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: colors.gray, fontSize: 14 },
-  scroll: { padding: 20, alignItems: 'center' },
-  avatar: { width: 96, height: 96, borderRadius: 48, marginBottom: 12 },
-  avatarPlaceholder: { backgroundColor: colors.backgroundLight, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { color: colors.primary, fontSize: 32, fontWeight: '700' },
-  name: { fontSize: 18, fontWeight: '700', color: colors.textDark },
-  meta: { fontSize: 14, color: colors.gray, marginTop: 4 },
-  section: { width: '100%', marginTop: 20 },
-  sectionTitle: { fontSize: 14, fontWeight: '600', color: colors.textDark, marginBottom: 6 },
-  sectionText: { fontSize: 14, color: colors.gray, lineHeight: 20 },
-  button: { width: '100%', marginTop: 30 },
+  flex: { flex: 1, backgroundColor: colors.white },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, backgroundColor: colors.white },
+  errorIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.backgroundLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  errorIcon: { fontSize: 24, fontWeight: '700', color: colors.primary },
+  errorText: { color: colors.gray, fontSize: 14, textAlign: 'center' },
+  scroll: { paddingBottom: 40 },
+
+  hero: {
+    alignItems: 'center',
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    backgroundColor: colors.backgroundLight,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  avatarRing: {
+    padding: 4,
+    borderRadius: 60,
+    backgroundColor: colors.white,
+    shadowColor: colors.black,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  avatar: { width: 96, height: 96, borderRadius: 48 },
+  avatarPlaceholder: { backgroundColor: colors.backgroundLightAlt, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { color: colors.primary, fontSize: 36, fontWeight: '700' },
+  heroName: { fontSize: 20, fontWeight: '700', color: colors.textDarker, marginTop: 14 },
+  heroMeta: { fontSize: 13, color: colors.grayAlt, marginTop: 4 },
+  heroStatus: { marginTop: 12, backgroundColor: colors.white },
+
+  cardAction: { fontSize: 12, fontWeight: '600', color: colors.primary },
+  bodyText: { fontSize: 14, lineHeight: 21, color: colors.textDark, marginTop: 12 },
+  bodyTextEmpty: { color: colors.grayLight },
+
+  button: { marginTop: 24, marginHorizontal: 20 },
 });

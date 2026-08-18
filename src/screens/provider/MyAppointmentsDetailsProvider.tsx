@@ -1,24 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, View } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
-import { Text } from '../../components/Text';
 import moment from 'moment';
+import { Text } from '../../components/Text';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { InfoRow, SectionCard } from '../../components/SectionCard';
+import { StatusPill } from '../../components/StatusPill';
 import { appointmentApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { useUi } from '../../context/UiContext';
 import { colors } from '../../theme/colors';
 import type { Appointment } from '../../types/models';
 import type { MyAppointmentsProviderStackParamList } from '../../navigation/types';
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
-    </View>
-  );
-}
 
 export default function MyAppointmentsDetailsProvider() {
   const route = useRoute<RouteProp<MyAppointmentsProviderStackParamList, 'MyAppointmentsDetailsProvider'>>();
@@ -58,54 +51,151 @@ export default function MyAppointmentsDetailsProvider() {
   }
 
   if (loading) {
-    return <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />;
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   if (error || !appointment) {
     return (
-      <View style={styles.loading}>
+      <View style={styles.centered}>
+        <View style={styles.errorIconCircle}>
+          <Text style={styles.errorIcon}>!</Text>
+        </View>
         <Text style={styles.errorText}>{error ?? 'Appointment not found'}</Text>
       </View>
     );
   }
 
-  return (
-    <ScrollView contentContainerStyle={styles.scroll}>
-      {appointment.user?.profile ? (
-        <Image source={{ uri: appointment.user.profile }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <Text style={styles.avatarInitial}>{(appointment.user?.name ?? appointment.name ?? 'V').charAt(0).toUpperCase()}</Text>
-        </View>
-      )}
-      <Text style={styles.name}>{appointment.name}</Text>
+  const visitorName = appointment.name || appointment.user?.name || 'Visitor';
+  const isPending = appointment.status === 'Pending';
 
-      <View style={styles.section}>
-        <DetailRow label="Phone" value={appointment.phone} />
-        <DetailRow label="Gender" value={appointment.gender} />
-        <DetailRow label="Check-in Time" value={moment(appointment.full_date).format('DD MMM YYYY, h:mm A')} />
-        <DetailRow label="Purpose of Visit" value={appointment.purpose_of_visit} />
-        <DetailRow label="Status" value={appointment.status} />
+  return (
+    <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <View style={styles.hero}>
+        <View style={styles.avatarRing}>
+          {appointment.user?.profile ? (
+            <Image source={{ uri: appointment.user.profile }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>{visitorName.charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.heroName} numberOfLines={1}>
+          {visitorName}
+        </Text>
+        <Text style={styles.heroMeta} numberOfLines={1}>
+          {moment(appointment.full_date).format('DD MMM YYYY, h:mm A')}
+        </Text>
+
+        <StatusPill status={appointment.status} style={styles.heroStatus} />
       </View>
 
-      {appointment.status === 'Pending' ? (
-        <PrimaryButton title="Mark as Completed" onPress={handleComplete} style={styles.button} />
+      <SectionCard
+        title="Visitor details"
+        action={
+          appointment.ticketNumber ? <Text style={styles.cardAction}>#{appointment.ticketNumber}</Text> : undefined
+        }>
+        <InfoRow label="Phone" value={appointment.phone} />
+        <InfoRow label="Email" value={appointment.email} />
+        <InfoRow label="Gender" value={appointment.gender} last />
+      </SectionCard>
+
+      <SectionCard title="Appointment">
+        <InfoRow label="Check-in time" value={moment(appointment.full_date).format('DD MMM YYYY, h:mm A')} />
+        <InfoRow label="Booked on" value={moment(appointment.createdAt).format('DD MMM YYYY')} />
+        <InfoRow label="Status" value={appointment.status} last />
+      </SectionCard>
+
+      <SectionCard title="Purpose of visit">
+        <Text style={[styles.bodyText, !appointment.purpose_of_visit && styles.bodyTextEmpty]}>
+          {appointment.purpose_of_visit || 'No purpose added.'}
+        </Text>
+      </SectionCard>
+
+      {appointment.paymentMethod ? (
+        <SectionCard
+          title="Payment"
+          action={<Text style={styles.cardAction}>{appointment.paymentStatus ?? 'Completed'}</Text>}>
+          <InfoRow label="Method" value={appointment.paymentMethod} />
+          <InfoRow label="Amount" value={`$${appointment.paymentAmount?.toFixed(2) ?? '5.50'}`} />
+          <InfoRow label="Transaction ID" value={appointment.transactionId} last />
+        </SectionCard>
       ) : null}
+
+      {isPending ? (
+        <PrimaryButton title="Mark as Completed" onPress={handleComplete} style={styles.button} />
+      ) : (
+        <View style={styles.completedBanner}>
+          <Text style={styles.completedIcon}>✓</Text>
+          <Text style={styles.completedText}>This appointment has been completed.</Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: colors.gray, fontSize: 14 },
-  scroll: { padding: 20, alignItems: 'center' },
-  avatar: { width: 96, height: 96, borderRadius: 48, marginBottom: 12 },
-  avatarPlaceholder: { backgroundColor: colors.backgroundLight, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { color: colors.primary, fontSize: 32, fontWeight: '700' },
-  name: { fontSize: 18, fontWeight: '700', color: colors.textDark },
-  section: { width: '100%', marginTop: 20 },
-  row: { marginBottom: 16 },
-  label: { fontSize: 13, color: colors.gray, marginBottom: 4 },
-  value: { fontSize: 16, color: colors.textDark, fontWeight: '600' },
-  button: { width: '100%', marginTop: 20 },
+  flex: { flex: 1, backgroundColor: colors.white },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, backgroundColor: colors.white },
+  errorIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.backgroundLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  errorIcon: { fontSize: 24, fontWeight: '700', color: colors.primary },
+  errorText: { color: colors.gray, fontSize: 14, textAlign: 'center' },
+  scroll: { paddingBottom: 40 },
+
+  hero: {
+    alignItems: 'center',
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    backgroundColor: colors.backgroundLight,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  avatarRing: {
+    padding: 4,
+    borderRadius: 60,
+    backgroundColor: colors.white,
+    shadowColor: colors.black,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  avatar: { width: 96, height: 96, borderRadius: 48 },
+  avatarPlaceholder: { backgroundColor: colors.backgroundLightAlt, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { color: colors.primary, fontSize: 36, fontWeight: '700' },
+  heroName: { fontSize: 20, fontWeight: '700', color: colors.textDarker, marginTop: 14 },
+  heroMeta: { fontSize: 13, color: colors.grayAlt, marginTop: 4 },
+  heroStatus: { marginTop: 12, backgroundColor: colors.white },
+
+  cardAction: { fontSize: 12, fontWeight: '600', color: colors.primary },
+  bodyText: { fontSize: 14, lineHeight: 21, color: colors.textDark, marginTop: 12 },
+  bodyTextEmpty: { color: colors.grayLight },
+
+  button: { marginTop: 24, marginHorizontal: 20 },
+  completedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 24,
+    marginHorizontal: 20,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: colors.successLight,
+  },
+  completedIcon: { fontSize: 15, fontWeight: '700', color: colors.success },
+  completedText: { flex: 1, fontSize: 13, color: colors.success },
 });
