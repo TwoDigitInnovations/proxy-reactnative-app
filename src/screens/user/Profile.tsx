@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import moment from 'moment';
 import { Text } from '../../components/Text';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -20,11 +22,22 @@ import { useUi } from '../../context/UiContext';
 import { pickImage } from '../../utils/imagePicker';
 import { colors } from '../../theme/colors';
 import { GOOGLE_MAPS_API_KEY } from '../../config/maps';
-import type { UserProfile } from '../../types/models';
+import type { Gender, UserProfile } from '../../types/models';
 
 interface PlacePrediction {
   place_id: string;
   description: string;
+}
+
+const GENDER_OPTIONS: Gender[] = ['Male', 'Female', 'Other'];
+
+const DOB_PICKER_ANCHOR = moment().subtract(18, 'years').toDate();
+
+function parseDob(value?: string): Date | undefined {
+  if (!value) return undefined;
+  const parsed = moment.utc(value);
+  if (!parsed.isValid()) return undefined;
+  return new Date(parsed.year(), parsed.month(), parsed.date());
 }
 
 export default function Profile() {
@@ -36,6 +49,9 @@ export default function Profile() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [dob, setDob] = useState<Date | undefined>(undefined);
+  const [gender, setGender] = useState<Gender | undefined>(undefined);
+  const [showDobPicker, setShowDobPicker] = useState(false);
   const [latitude, setLatitude] = useState<number | undefined>(undefined);
   const [longitude, setLongitude] = useState<number | undefined>(undefined);
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
@@ -57,6 +73,8 @@ export default function Profile() {
           setEmail(profile.email ?? '');
           setPhone(profile.phone ?? '');
           setAddress(profile.address ?? '');
+          setDob(parseDob(profile.dob));
+          setGender(profile.gender);
           setLatitude(profile.latitude);
           setLongitude(profile.longitude);
           setPhotoUri(profile.profile);
@@ -78,6 +96,12 @@ export default function Profile() {
     if (!asset?.uri) return;
     setPhotoUri(asset.uri);
     setNewPhoto({ uri: asset.uri, type: asset.type ?? 'image/jpeg', name: asset.fileName ?? 'profile.jpg' });
+  }
+
+  function onDobChange(event: DateTimePickerEvent, selected?: Date) {
+    if (Platform.OS === 'android') setShowDobPicker(false);
+    if (event.type === 'dismissed') return;
+    if (selected) setDob(selected);
   }
 
   function onChangeAddressText(text: string) {
@@ -155,6 +179,8 @@ export default function Profile() {
       formData.append('email', email);
       formData.append('phone', phone);
       formData.append('address', address);
+      if (dob) formData.append('dob', moment(dob).format('YYYY-MM-DD'));
+      if (gender) formData.append('gender', gender);
       if (lat !== undefined) formData.append('latitude', String(lat));
       if (lng !== undefined) formData.append('longitude', String(lng));
 
@@ -180,6 +206,7 @@ export default function Profile() {
       setIsEdit(false);
       setSubmitted(false);
       setPredictions([]);
+      setShowDobPicker(false);
       setNewPhoto(null);
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : 'Something went wrong');
@@ -203,11 +230,31 @@ export default function Profile() {
               <Text style={styles.avatarInitial}>{(name || 'U').charAt(0).toUpperCase()}</Text>
             </View>
           )}
-          {isEdit ? <Text style={styles.editPhotoLabel}>Change Photo</Text> : null}
+          {isEdit ?
+            <Text
+              style={styles.editPhotoLabel}
+            >
+              Change Photo
+            </Text>
+            : null
+          }
         </TouchableOpacity>
 
+        {/* {isEdit ? (
+          null
+        ) : (
+          <Text onPress={() => setIsEdit(true)} style={styles.editPhotoLabel}>Edit Profile</Text>
+        )} */}
+
         <View style={styles.fullWidth}>
-          <TextField label="Name" value={name} onChangeText={setName} editable={isEdit} error={nameError} />
+          <TextField
+            label="Name"
+            value={name}
+            onChangeText={setName}
+            editable={isEdit}
+            error={nameError}
+          />
+
           <TextField
             label="Email"
             value={email}
@@ -217,8 +264,65 @@ export default function Profile() {
             autoCapitalize="none"
             error={emailError}
           />
-          <TextField label="Phone" value={phone} onChangeText={setPhone} editable={isEdit} keyboardType="phone-pad" />
-          
+
+          <TextField
+            label="Phone"
+            value={phone}
+            onChangeText={setPhone}
+            editable={isEdit}
+            keyboardType="phone-pad"
+          />
+
+          <TouchableOpacity
+            onPress={isEdit ? () => setShowDobPicker(true) : undefined}
+            activeOpacity={isEdit ? 0.7 : 1}>
+            <View pointerEvents="none">
+              <TextField
+                label="Date of Birth"
+                value={dob ? moment(dob).format('DD MMM YYYY') : ''}
+                editable={false}
+                placeholder="Select your date of birth"
+              />
+            </View>
+          </TouchableOpacity>
+
+          {showDobPicker && (
+            <DateTimePicker
+              value={dob ?? DOB_PICKER_ANCHOR}
+              mode="date"
+              maximumDate={new Date()}
+              display={Platform.OS === 'android' ? 'default' : 'spinner'}
+              onChange={onDobChange}
+            />
+          )}
+          {showDobPicker && Platform.OS === 'ios' && (
+            <PrimaryButton
+              title="Done"
+              onPress={() => setShowDobPicker(false)}
+              style={styles.doneButton}
+            />
+          )}
+
+          <View style={styles.fieldWrap}>
+            <Text style={styles.fieldLabel}>Gender</Text>
+            <View style={styles.genderRow}>
+              {GENDER_OPTIONS.map(option => {
+                const selected = gender === option;
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={[styles.genderChip, selected && styles.genderChipSelected]}
+                    onPress={isEdit ? () => setGender(option) : undefined}
+                    activeOpacity={isEdit ? 0.7 : 1}>
+                    <Text style={[styles.genderChipText, selected && styles.genderChipTextSelected]}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
           <View style={styles.addressWrap}>
             <TextField
               label="Home / City Address"
@@ -264,6 +368,21 @@ const styles = StyleSheet.create({
   avatarInitial: { color: colors.primary, fontSize: 32, fontWeight: '700' },
   editPhotoLabel: { fontSize: 13, color: colors.primaryAlt, fontWeight: '600', marginTop: 8 },
   fullWidth: { width: '100%' },
+  fieldWrap: { marginTop: 16 },
+  fieldLabel: { fontSize: 13, color: colors.gray, marginBottom: 6 },
+  genderRow: { flexDirection: 'row', gap: 10 },
+  genderChip: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  genderChipSelected: { borderColor: colors.primary, backgroundColor: colors.backgroundLight },
+  genderChipText: { fontSize: 15, color: colors.gray },
+  genderChipTextSelected: { color: colors.primary, fontWeight: '600' },
+  doneButton: { width: '100%', marginTop: 12 },
   addressWrap: { position: 'relative', width: '100%', zIndex: 10 },
   predictionsList: {
     backgroundColor: colors.white,
