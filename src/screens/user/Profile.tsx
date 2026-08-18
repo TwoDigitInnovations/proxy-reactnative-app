@@ -29,6 +29,18 @@ interface PlacePrediction {
   description: string;
 }
 
+interface ProfileSnapshot {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  dob?: Date;
+  gender?: Gender;
+  latitude?: number;
+  longitude?: number;
+  photoUri?: string;
+}
+
 const GENDER_OPTIONS: Gender[] = ['Male', 'Female', 'Other'];
 
 const DOB_PICKER_ANCHOR = moment().subtract(18, 'years').toDate();
@@ -38,6 +50,35 @@ function parseDob(value?: string): Date | undefined {
   const parsed = moment.utc(value);
   if (!parsed.isValid()) return undefined;
   return new Date(parsed.year(), parsed.month(), parsed.date());
+}
+
+function InfoRow({ label, value, last }: { label: string; value?: string; last?: boolean }) {
+  return (
+    <View style={[styles.infoRow, last && styles.infoRowLast]}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={[styles.infoValue, !value && styles.infoValueEmpty]}>{value || 'Not added yet'}</Text>
+    </View>
+  );
+}
+
+function SectionCard({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>{title}</Text>
+        {action}
+      </View>
+      {children}
+    </View>
+  );
 }
 
 export default function Profile() {
@@ -61,6 +102,7 @@ export default function Profile() {
 
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const predictionsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const snapshot = useRef<ProfileSnapshot | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -91,6 +133,32 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function startEditing() {
+    snapshot.current = { name, email, phone, address, dob, gender, latitude, longitude, photoUri };
+    setIsEdit(true);
+  }
+
+  function cancelEditing() {
+    const saved = snapshot.current;
+    if (saved) {
+      setName(saved.name);
+      setEmail(saved.email);
+      setPhone(saved.phone);
+      setAddress(saved.address);
+      setDob(saved.dob);
+      setGender(saved.gender);
+      setLatitude(saved.latitude);
+      setLongitude(saved.longitude);
+      setPhotoUri(saved.photoUri);
+    }
+    if (predictionsTimer.current) clearTimeout(predictionsTimer.current);
+    setNewPhoto(null);
+    setPredictions([]);
+    setShowDobPicker(false);
+    setSubmitted(false);
+    setIsEdit(false);
+  }
+
   async function handlePickPhoto() {
     const asset = await pickImage();
     if (!asset?.uri) return;
@@ -106,6 +174,8 @@ export default function Profile() {
 
   function onChangeAddressText(text: string) {
     setAddress(text);
+    setLatitude(undefined);
+    setLongitude(undefined);
     if (!isEdit) return;
     if (predictionsTimer.current) clearTimeout(predictionsTimer.current);
     if (!text) {
@@ -208,6 +278,7 @@ export default function Profile() {
       setPredictions([]);
       setShowDobPicker(false);
       setNewPhoto(null);
+      snapshot.current = null;
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : 'Something went wrong');
     } finally {
@@ -216,142 +287,208 @@ export default function Profile() {
   }
 
   if (loading) {
-    return <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />;
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
+
+  const dobLabel = dob ? moment(dob).format('DD MMM YYYY') : '';
+  const hasCoordinates = latitude !== undefined && longitude !== undefined;
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity onPress={isEdit ? handlePickPhoto : undefined} style={styles.avatarWrap} activeOpacity={isEdit ? 0.7 : 1}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarInitial}>{(name || 'U').charAt(0).toUpperCase()}</Text>
-            </View>
-          )}
-          {isEdit ?
-            <Text
-              style={styles.editPhotoLabel}
-            >
-              Change Photo
-            </Text>
-            : null
-          }
-        </TouchableOpacity>
-
-        {/* {isEdit ? (
-          null
-        ) : (
-          <Text onPress={() => setIsEdit(true)} style={styles.editPhotoLabel}>Edit Profile</Text>
-        )} */}
-
-        <View style={styles.fullWidth}>
-          <TextField
-            label="Name"
-            value={name}
-            onChangeText={setName}
-            editable={isEdit}
-            error={nameError}
-          />
-
-          <TextField
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            editable={isEdit}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={emailError}
-          />
-
-          <TextField
-            label="Phone"
-            value={phone}
-            onChangeText={setPhone}
-            editable={isEdit}
-            keyboardType="phone-pad"
-          />
-
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.hero}>
           <TouchableOpacity
-            onPress={isEdit ? () => setShowDobPicker(true) : undefined}
-            activeOpacity={isEdit ? 0.7 : 1}>
-            <View pointerEvents="none">
-              <TextField
-                label="Date of Birth"
-                value={dob ? moment(dob).format('DD MMM YYYY') : ''}
-                editable={false}
-                placeholder="Select your date of birth"
-              />
+            onPress={isEdit ? handlePickPhoto : undefined}
+            activeOpacity={isEdit ? 0.8 : 1}
+            style={styles.avatarWrap}>
+            <View style={styles.avatarRing}>
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarInitial}>{(name || 'U').charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
             </View>
+            {isEdit ? (
+              <View style={styles.cameraBadge}>
+                <Text style={styles.cameraBadgeIcon}>✎</Text>
+              </View>
+            ) : null}
           </TouchableOpacity>
 
-          {showDobPicker && (
-            <DateTimePicker
-              value={dob ?? DOB_PICKER_ANCHOR}
-              mode="date"
-              maximumDate={new Date()}
-              display={Platform.OS === 'android' ? 'default' : 'spinner'}
-              onChange={onDobChange}
-            />
-          )}
-          {showDobPicker && Platform.OS === 'ios' && (
-            <PrimaryButton
-              title="Done"
-              onPress={() => setShowDobPicker(false)}
-              style={styles.doneButton}
-            />
-          )}
+          <Text style={styles.heroName} numberOfLines={1}>
+            {name || 'Your profile'}
+          </Text>
+          {email ? (
+            <Text style={styles.heroEmail} numberOfLines={1}>
+              {email}
+            </Text>
+          ) : null}
 
-          <View style={styles.fieldWrap}>
-            <Text style={styles.fieldLabel}>Gender</Text>
-            <View style={styles.genderRow}>
-              {GENDER_OPTIONS.map(option => {
-                const selected = gender === option;
-                return (
-                  <TouchableOpacity
-                    key={option}
-                    style={[styles.genderChip, selected && styles.genderChipSelected]}
-                    onPress={isEdit ? () => setGender(option) : undefined}
-                    activeOpacity={isEdit ? 0.7 : 1}>
-                    <Text style={[styles.genderChipText, selected && styles.genderChipTextSelected]}>
-                      {option}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+          <View style={styles.heroBadge}>
+            <Text style={styles.heroBadgeText}>Customer</Text>
           </View>
 
-          <View style={styles.addressWrap}>
-            <TextField
-              label="Home / City Address"
-              value={address}
-              onChangeText={onChangeAddressText}
-              editable={isEdit}
-              placeholder="e.g. Rajajipuram, Lucknow, Uttar Pradesh"
-            />
-            {predictions.length > 0 && isEdit && (
-              <View style={styles.predictionsList}>
-                {predictions.map(item => (
-                  <TouchableOpacity
-                    key={item.place_id}
-                    style={styles.predictionRow}
-                    onPress={() => onSelectPrediction(item)}>
-                    <Text style={styles.predictionText} numberOfLines={1}>
-                      {item.description}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
+          {isEdit ? <Text style={styles.heroHint}>Tap the photo to change it</Text> : null}
         </View>
 
+        <SectionCard title="Personal details">
+          {isEdit ? (
+            <View style={styles.fieldStack}>
+              <TextField
+                label="Name"
+                value={name}
+                onChangeText={setName}
+                editable
+                placeholder="Enter your full name"
+                error={nameError}
+                style={styles.input}
+              />
+              <TextField
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                editable
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholder="you@example.com"
+                error={emailError}
+                style={styles.input}
+              />
+              <TextField
+                label="Phone"
+                value={phone}
+                onChangeText={setPhone}
+                editable
+                keyboardType="phone-pad"
+                placeholder="Enter your phone number"
+                style={styles.input}
+              />
+            </View>
+          ) : (
+            <View>
+              <InfoRow label="Name" value={name} />
+              <InfoRow label="Email" value={email} />
+              <InfoRow label="Phone" value={phone} last />
+            </View>
+          )}
+        </SectionCard>
+
+        <SectionCard title="About you">
+          {isEdit ? (
+            <View style={styles.fieldStack}>
+              <TouchableOpacity onPress={() => setShowDobPicker(true)} activeOpacity={0.7}>
+                <View pointerEvents="none">
+                  <TextField
+                    label="Date of Birth"
+                    value={dobLabel}
+                    editable={false}
+                    placeholder="Select your date of birth"
+                    style={styles.input}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {showDobPicker && (
+                <DateTimePicker
+                  value={dob ?? DOB_PICKER_ANCHOR}
+                  mode="date"
+                  maximumDate={new Date()}
+                  display={Platform.OS === 'android' ? 'default' : 'spinner'}
+                  onChange={onDobChange}
+                />
+              )}
+              {showDobPicker && Platform.OS === 'ios' && (
+                <PrimaryButton title="Done" onPress={() => setShowDobPicker(false)} style={styles.doneButton} />
+              )}
+
+              <View style={styles.fieldWrap}>
+                <Text style={styles.fieldLabel}>Gender</Text>
+                <View style={styles.genderRow}>
+                  {GENDER_OPTIONS.map(option => {
+                    const selected = gender === option;
+                    return (
+                      <TouchableOpacity
+                        key={option}
+                        style={[styles.genderChip, selected && styles.genderChipSelected]}
+                        onPress={() => setGender(option)}
+                        activeOpacity={0.7}>
+                        <Text style={[styles.genderChipText, selected && styles.genderChipTextSelected]}>
+                          {option}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View>
+              <InfoRow label="Date of Birth" value={dobLabel} />
+              <InfoRow label="Gender" value={gender} last />
+            </View>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Location"
+          action={hasCoordinates ? <Text style={styles.cardCount}>Pinned</Text> : undefined}>
+          {isEdit ? (
+            <View style={styles.fieldStack}>
+              <TextField
+                label="Home / City Address"
+                value={address}
+                onChangeText={onChangeAddressText}
+                editable
+                placeholder="e.g. Rajajipuram, Lucknow, Uttar Pradesh"
+                style={styles.input}
+              />
+              {predictions.length > 0 ? (
+                <View style={styles.predictionsList}>
+                  {predictions.map(item => (
+                    <TouchableOpacity
+                      key={item.place_id}
+                      style={styles.predictionRow}
+                      onPress={() => onSelectPrediction(item)}>
+                      <Text style={styles.predictionText} numberOfLines={1}>
+                        {item.description}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
+              <Text style={styles.locationHint}>
+                Pick a suggestion so we can match you with providers nearby.
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.addressText, !address && styles.infoValueEmpty]}>
+              {address || 'No address added yet.'}
+            </Text>
+          )}
+        </SectionCard>
+
         {isEdit ? (
-          <PrimaryButton title="Save Profile & Location" onPress={handleSave} style={styles.button} />
+          <View style={styles.actionRow}>
+            <PrimaryButton
+              title="Cancel"
+              onPress={cancelEditing}
+              style={styles.secondaryButton}
+              textStyle={styles.secondaryButtonText}
+            />
+            <PrimaryButton title="Save Changes" onPress={handleSave} style={styles.primaryButton} />
+          </View>
         ) : (
-          <PrimaryButton title="Edit Profile" onPress={() => setIsEdit(true)} style={styles.button} />
+          <PrimaryButton title="Edit Profile" onPress={startEditing} style={styles.fullButton} />
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -360,21 +497,94 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.white },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll: { padding: 20, alignItems: 'center' },
-  avatarWrap: { alignItems: 'center', marginBottom: 20 },
-  avatar: { width: 96, height: 96, borderRadius: 48 },
-  avatarPlaceholder: { backgroundColor: colors.backgroundLight, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { color: colors.primary, fontSize: 32, fontWeight: '700' },
-  editPhotoLabel: { fontSize: 13, color: colors.primaryAlt, fontWeight: '600', marginTop: 8 },
-  fullWidth: { width: '100%' },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
+  scroll: { paddingBottom: 40 },
+
+  hero: {
+    alignItems: 'center',
+    paddingTop: 24,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    backgroundColor: colors.backgroundLight,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  avatarWrap: { marginBottom: 14 },
+  avatarRing: {
+    padding: 4,
+    borderRadius: 60,
+    backgroundColor: colors.white,
+    shadowColor: colors.black,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  avatar: { width: 104, height: 104, borderRadius: 52 },
+  avatarPlaceholder: { backgroundColor: colors.backgroundLightAlt, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { color: colors.primary, fontSize: 40, fontWeight: '700' },
+  cameraBadge: {
+    position: 'absolute',
+    right: 2,
+    bottom: 2,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.primaryAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.white,
+  },
+  cameraBadgeIcon: { color: colors.white, fontSize: 14, lineHeight: 18 },
+  heroName: { fontSize: 20, fontWeight: '700', color: colors.textDarker },
+  heroEmail: { fontSize: 13, color: colors.grayAlt, marginTop: 4 },
+  heroBadge: {
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+  },
+  heroBadgeText: { fontSize: 12, fontWeight: '600', color: colors.primary },
+  heroHint: { fontSize: 12, color: colors.grayAlt, marginTop: 12 },
+
+  card: {
+    marginTop: 16,
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.backgroundLightAlt,
+    shadowColor: colors.black,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardTitle: { fontSize: 15, fontWeight: '600', color: colors.textDarker },
+  cardCount: { fontSize: 12, fontWeight: '600', color: colors.primary },
+
+  infoRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.backgroundLightAlt },
+  infoRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
+  infoLabel: { fontSize: 12, color: colors.gray, marginBottom: 4 },
+  infoValue: { fontSize: 15, color: colors.textDark },
+  infoValueEmpty: { color: colors.grayLight },
+
+  fieldStack: { marginTop: -4 },
+  input: { backgroundColor: colors.white, borderColor: colors.grayLight, color: colors.textDark },
+  addressText: { fontSize: 14, lineHeight: 21, color: colors.textDark, marginTop: 12 },
+
+  doneButton: { marginTop: 12 },
   fieldWrap: { marginTop: 16 },
   fieldLabel: { fontSize: 13, color: colors.gray, marginBottom: 6 },
   genderRow: { flexDirection: 'row', gap: 10 },
   genderChip: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.grayLight,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -382,22 +592,27 @@ const styles = StyleSheet.create({
   genderChipSelected: { borderColor: colors.primary, backgroundColor: colors.backgroundLight },
   genderChipText: { fontSize: 15, color: colors.gray },
   genderChipTextSelected: { color: colors.primary, fontWeight: '600' },
-  doneButton: { width: '100%', marginTop: 12 },
-  addressWrap: { position: 'relative', width: '100%', zIndex: 10 },
+
   predictionsList: {
+    marginTop: 8,
+    borderRadius: 12,
     backgroundColor: colors.white,
-    borderRadius: 10,
-    marginTop: -10,
-    marginBottom: 14,
     borderWidth: 1,
     borderColor: colors.backgroundLightAlt,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    overflow: 'hidden',
   },
-  predictionRow: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.backgroundLightAlt },
+  predictionRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.backgroundLightAlt,
+  },
   predictionText: { fontSize: 14, color: colors.textDark },
-  button: { width: '100%', marginTop: 24 },
+  locationHint: { fontSize: 12, color: colors.gray, marginTop: 12 },
+
+  fullButton: { marginTop: 24, marginHorizontal: 20 },
+  actionRow: { flexDirection: 'row', gap: 12, marginTop: 24, marginHorizontal: 20 },
+  primaryButton: { flex: 1 },
+  secondaryButton: { flex: 1, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.grayLight },
+  secondaryButtonText: { color: colors.textDark },
 });
