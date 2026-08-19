@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
@@ -20,7 +21,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Text } from '../../components/Text';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { TextField } from '../../components/TextField';
-import { categoryApi, serviceApi, appointmentApi } from '../../api/endpoints';
+import { authApi, categoryApi, serviceApi, appointmentApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
@@ -28,6 +29,7 @@ import { useUi } from '../../context/UiContext';
 import { NotificationBellButton, useNotifications } from '../../context/NotificationContext';
 import { getCurrentLocation, requestLocationPermission } from '../../utils/location';
 import { colors } from '../../theme/colors';
+import { Icon, type IconName } from '../../components/Icon';
 import { GOOGLE_MAPS_API_KEY } from '../../config/maps';
 import type { Category, ServiceListing } from '../../types/models';
 import type { RootStackParamList } from '../../navigation/types';
@@ -75,7 +77,7 @@ function decodePolyline(encoded: string): { latitude: number; longitude: number 
 
 export default function Home() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { userDetail } = useAuth();
+  const { userDetail, updateUserDetail } = useAuth();
   const { showLoading, hideLoading, showToast } = useUi();
   const { addNotification } = useNotifications();
   const insets = useSafeAreaInsets();
@@ -171,6 +173,16 @@ export default function Home() {
       initLocation();
     }, [initLocation]),
   );
+
+  useEffect(() => {
+    if (userDetail) {
+      if (userDetail.name) setPayName(prev => prev || userDetail.name);
+      if (userDetail.email) setPayEmail(prev => prev || userDetail.email);
+      const phoneNum = userDetail.phone || userDetail.phoneNumber || userDetail.mobile || userDetail.phone_number || userDetail.contact;
+      if (phoneNum) setPayPhone(prev => prev || String(phoneNum));
+      if (userDetail.gender) setPayGender(prev => prev || userDetail.gender);
+    }
+  }, [userDetail?.name, userDetail?.email, userDetail?.phone]);
 
   async function loadCategories() {
     try {
@@ -332,7 +344,7 @@ export default function Home() {
         );
       } else {
         mapRef.current?.fitToCoordinates(coords, {
-          edgePadding: { top: 140, right: 60, bottom: 220, left: 60 },
+          edgePadding: { top: 160, right: 60, bottom: 220, left: 60 },
           animated: true,
         });
       }
@@ -365,6 +377,12 @@ export default function Home() {
     setRouteCoordinates([]);
     setRouteInfo(null);
     setActiveTargetCoords(null);
+  }
+
+  function recenterUserLocation() {
+    if (region) {
+      mapRef.current?.animateToRegion(region, 500);
+    }
   }
 
   function zoomIn() {
@@ -452,6 +470,13 @@ export default function Home() {
 
   function onConfirmSlot() {
     setShowSlotModal(false);
+    if (userDetail) {
+      if (!payName && userDetail.name) setPayName(userDetail.name);
+      if (!payEmail && userDetail.email) setPayEmail(userDetail.email);
+      const phoneNum = userDetail.phone || userDetail.phoneNumber || userDetail.mobile || userDetail.phone_number || userDetail.contact;
+      if (!payPhone && phoneNum) setPayPhone(String(phoneNum));
+      if (!payGender && userDetail.gender) setPayGender(userDetail.gender);
+    }
     setShowPaymentModal(true);
   }
 
@@ -551,17 +576,25 @@ export default function Home() {
 
   return (
     <View style={styles.flex}>
-      <View style={[styles.searchWrap, { top: insets.top + 12 }]}>
+      {/* Top Floating Glassmorphism Search & Categories Header */}
+      <View style={[styles.topFloatingHeader, { top: insets.top + 8 }]}>
         <View style={styles.searchRow}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search location"
-            value={address}
-            onChangeText={onChangeAddress}
-            placeholderTextColor={colors.border}
-          />
+          <View style={styles.searchBox}>
+            <View style={styles.searchIconWrap}>
+              <Icon name="search" size={18} color={colors.primaryAlt} />
+            </View>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search location or agency..."
+              value={address}
+              onChangeText={onChangeAddress}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
           <NotificationBellButton />
         </View>
+
+        {/* Predictions Dropdown */}
         {predictions.length > 0 && (
           <View style={styles.predictionsList}>
             {predictions.map(item => (
@@ -573,19 +606,52 @@ export default function Home() {
             ))}
           </View>
         )}
+
+        {/* Top Category Floating Filter Chips */}
+        <View style={styles.categoryBar}>
+          <FlatList
+            data={categories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={item => item._id}
+            contentContainerStyle={styles.categoryList}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[styles.categoryChip, selectedCategoryId === item._id && styles.categoryChipActive]}
+                onPress={() => onSelectCategory(item._id)}>
+                <Text style={[styles.categoryChipText, selectedCategoryId === item._id && styles.categoryChipTextActive]}>
+                  {item.name}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
       </View>
 
+      {/* Active Driving Route Banner */}
       {routeInfo && (
-        <View style={[styles.routeBanner, { top: insets.top + 70 }]}>
-          <Text style={styles.routeBannerText}>
-            🚗 {routeInfo.distance} • {routeInfo.duration}
-          </Text>
-          <TouchableOpacity onPress={clearRouteNavigation}>
-            <Text style={styles.clearRouteText}>✕</Text>
+        <View style={[styles.routeBanner, { top: insets.top + 130 }]}>
+          <View style={styles.routeBannerContent}>
+            <View style={styles.routeBannerHeader}>
+              <Icon name="navigation" size={16} color="#3B82F6" />
+              <Text style={styles.routeBannerText}>
+                {routeInfo.distance} • {routeInfo.duration}
+              </Text>
+            </View>
+            {activeTargetCoords && (
+              <TouchableOpacity onPress={() => openExternalNavigation(activeTargetCoords.latitude, activeTargetCoords.longitude)}>
+                <Text style={styles.openMapsLink}>Open in Google Maps →</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity onPress={clearRouteNavigation} style={styles.closeRouteBtn}>
+            <Icon name="x" size={18} color={colors.grayLight} />
           </TouchableOpacity>
         </View>
       )}
 
+      {/* Map View */}
       {region ? (
         <MapView
           ref={mapRef}
@@ -618,38 +684,26 @@ export default function Home() {
         </View>
       )}
 
-      <View style={styles.zoomContainer}>
-        <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn}>
+      {/* Floating Map Controls on Right Side */}
+      <View style={styles.mapControlsContainer}>
+        <TouchableOpacity style={styles.controlBtn} onPress={recenterUserLocation} activeOpacity={0.8}>
+          <Icon name="map-pin" size={18} color={colors.primaryAlt} />
+        </TouchableOpacity>
+        <View style={styles.controlDivider} />
+        <TouchableOpacity style={styles.controlBtn} onPress={zoomIn} activeOpacity={0.8}>
           <Text style={styles.zoomText}>+</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut}>
+        <View style={styles.controlDivider} />
+        <TouchableOpacity style={styles.controlBtn} onPress={zoomOut} activeOpacity={0.8}>
           <Text style={styles.zoomText}>−</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.categoryBar}>
-        <FlatList
-          data={categories}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={item => item._id}
-          contentContainerStyle={styles.categoryList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.categoryChip, selectedCategoryId === item._id && styles.categoryChipActive]}
-              onPress={() => onSelectCategory(item._id)}>
-              <Text style={[styles.categoryChipText, selectedCategoryId === item._id && styles.categoryChipTextActive]}>
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      {/* Service detail modal */}
+      {/* Service Detail Bottom Sheet Modal */}
       <Modal visible={showServiceModal} animationType="slide" transparent onRequestClose={() => setShowServiceModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.sheet, { paddingBottom: 20 + insets.bottom }]}>
+          <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]}>
+            <View style={styles.sheetHandle} />
             {selectedService && (
               <>
                 {selectedService.service_photo?.[0] ? (
@@ -670,18 +724,18 @@ export default function Home() {
                     ]}>
                     <Text style={styles.crowdBadgeText}>
                       {selectedService.crowdLevel === 'High'
-                        ? '🔴 Heavy Rush'
+                        ? 'Heavy Rush'
                         : selectedService.crowdLevel === 'Moderate'
-                        ? '🟠 Moderate Rush'
-                        : '🟢 Low Rush'}
+                        ? 'Moderate Rush'
+                        : 'Low Rush'}
                     </Text>
                   </View>
                   <Text style={styles.queueMetaText}>
                     {(selectedService.queueCount ?? 0) === 0
-                      ? '⚡ No waiting line • Direct entry available'
+                      ? 'No waiting line • Direct entry available'
                       : (selectedService.queueCount ?? 0) === 1
-                      ? '👥 1 person ahead • ~5 mins wait'
-                      : `👥 ${selectedService.queueCount} people ahead • ~${selectedService.estimatedWaitMinutes} mins wait`}
+                      ? '1 person ahead • ~5 mins wait'
+                      : `${selectedService.queueCount} people ahead • ~${selectedService.estimatedWaitMinutes} mins wait`}
                   </Text>
                 </View>
 
@@ -689,9 +743,22 @@ export default function Home() {
                   <Text style={styles.sheetBody}>{selectedService.service_description}</Text>
                 ) : null}
 
-                <PrimaryButton title="Book Appointment" onPress={onBookAppointment} style={styles.sheetButton} />
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={styles.routeBtn}
+                    onPress={() => handleStartNavigation(selectedService)}>
+                    <Icon name="navigation" size={16} color={colors.primaryAlt} />
+                    <Text style={styles.routeBtnText}>Get Directions</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.bookBtn}
+                    onPress={onBookAppointment}>
+                    <Icon name="calendar" size={16} color={colors.white} />
+                    <Text style={styles.bookBtnText}>Book Ticket</Text>
+                  </TouchableOpacity>
+                </View>
 
-                <TouchableOpacity onPress={() => setShowServiceModal(false)}>
+                <TouchableOpacity onPress={() => setShowServiceModal(false)} style={styles.closeModalBtn}>
                   <Text style={styles.sheetCancel}>Close</Text>
                 </TouchableOpacity>
               </>
@@ -700,10 +767,11 @@ export default function Home() {
         </View>
       </Modal>
 
-      {/* Time slot modal */}
+      {/* Time Slot Modal */}
       <Modal visible={showSlotModal} animationType="slide" transparent onRequestClose={() => setShowSlotModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.sheet, { paddingBottom: 20 + insets.bottom }]}>
+          <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]}>
+            <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>Select Date & Time</Text>
             <View style={styles.chipRow}>
               {DATE_LIST.map(date => (
@@ -727,7 +795,7 @@ export default function Home() {
                 </TouchableOpacity>
               ))}
             </View>
-            <PrimaryButton title="Continue" onPress={onConfirmSlot} style={styles.sheetButton} disabled={!selectedTime} />
+            <PrimaryButton title="Continue to Booking Details" onPress={onConfirmSlot} style={styles.sheetButton} disabled={!selectedTime} />
             <TouchableOpacity onPress={() => setShowSlotModal(false)}>
               <Text style={styles.sheetCancel}>Cancel</Text>
             </TouchableOpacity>
@@ -735,19 +803,79 @@ export default function Home() {
         </View>
       </Modal>
 
-      {/* Payment / visitor details modal */}
+      {/* Payment / Visitor Details Modal */}
       <Modal visible={showPaymentModal} animationType="slide" transparent onRequestClose={() => setShowPaymentModal(false)}>
-        <View style={styles.modalOverlay}>
-          <ScrollView style={styles.sheetScroll} contentContainerStyle={[styles.sheet, { paddingBottom: 20 + insets.bottom }]}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+          <ScrollView
+            style={styles.sheetScroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.sheet, { paddingBottom: 240 + insets.bottom }]}>
+            <View style={styles.sheetHandle} />
             {paymentStep === 'details' ? (
               <>
                 <Text style={styles.sheetTitle}>Visitor Details</Text>
-                <TextField label="Name" value={payName} onChangeText={setPayName} error={nameError} />
-                <TextField label="Email" value={payEmail} onChangeText={setPayEmail} keyboardType="email-address" autoCapitalize="none" error={emailError} />
-                <TextField label="Phone" value={payPhone} onChangeText={setPayPhone} keyboardType="phone-pad" error={phoneError} />
-                <TextField label="Gender" value={payGender} onChangeText={setPayGender} error={genderError} />
-                <TextField label="Purpose of Visit" value={payPurpose} onChangeText={setPayPurpose} error={purposeError} />
-                <PrimaryButton title="Proceed to Payment" onPress={onProceedToPayment} style={styles.sheetButton} />
+                <Text style={styles.sheetSubtitle}>Review or update your details for this booking</Text>
+
+                {selectedService && selectedTime ? (
+                  <View style={styles.bookingMiniSummary}>
+                    <Text style={styles.bookingMiniTitle}>{selectedService.service_name}</Text>
+                    <View style={styles.bookingMiniMetaRow}>
+                      <Icon name="calendar" size={12} color={colors.primaryAlt} />
+                      <Text style={styles.bookingMiniMetaText}>{selectedDate}</Text>
+                      <Text style={styles.bookingDot}>•</Text>
+                      <Icon name="clock" size={12} color={colors.primaryAlt} />
+                      <Text style={styles.bookingMiniMetaText}>{selectedTime}</Text>
+                    </View>
+                  </View>
+                ) : null}
+
+                <TextField label="Full Name" value={payName} onChangeText={setPayName} placeholder="Enter full name" error={nameError} />
+                <TextField label="Email Address" value={payEmail} onChangeText={setPayEmail} keyboardType="email-address" autoCapitalize="none" placeholder="user@example.com" error={emailError} />
+                <TextField label="Phone Number" value={payPhone} onChangeText={setPayPhone} keyboardType="phone-pad" placeholder="+1 234 567 890" error={phoneError} />
+
+                {/* Quick Gender Chips */}
+                <View style={styles.quickFieldGroup}>
+                  <Text style={styles.fieldLabel}>Gender</Text>
+                  <View style={styles.chipRow}>
+                    {['Male', 'Female', 'Other'].map(g => {
+                      const isSelected = payGender.toLowerCase() === g.toLowerCase();
+                      return (
+                        <TouchableOpacity
+                          key={g}
+                          style={[styles.dateChip, isSelected && styles.dateChipActive]}
+                          onPress={() => setPayGender(g)}>
+                          <Text style={[styles.dateChipText, isSelected && styles.dateChipTextActive]}>{g}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <TextField label="" value={payGender} onChangeText={setPayGender} placeholder="Or type gender" error={genderError} />
+                </View>
+
+                {/* Quick Purpose Suggestions */}
+                <View style={styles.quickFieldGroup}>
+                  <Text style={styles.fieldLabel}>Purpose of Visit</Text>
+                  <View style={styles.chipRow}>
+                    {['General Consultation', 'Document Verification', 'Medical Checkup', 'Account Opening'].map(p => {
+                      const isSelected = payPurpose === p;
+                      return (
+                        <TouchableOpacity
+                          key={p}
+                          style={[styles.dateChip, isSelected && styles.dateChipActive]}
+                          onPress={() => setPayPurpose(p)}>
+                          <Text style={[styles.dateChipText, isSelected && styles.dateChipTextActive]}>{p}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <TextField label="" value={payPurpose} onChangeText={setPayPurpose} placeholder="Describe purpose of visit..." error={purposeError} />
+                </View>
+
+                <PrimaryButton title="Proceed to Payment Checkout" onPress={onProceedToPayment} style={styles.sheetButton} />
                 <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
                   <Text style={styles.sheetCancel}>Cancel</Text>
                 </TouchableOpacity>
@@ -755,60 +883,99 @@ export default function Home() {
             ) : (
               <>
                 <Text style={styles.sheetTitle}>Payment Checkout</Text>
+                <Text style={styles.sheetSubtitle}>Complete payment to confirm your queue ticket</Text>
+
+                {/* Hero Summary Card */}
                 <View style={styles.summaryCard}>
+                  <View style={styles.summaryBadgeRow}>
+                    <View style={styles.flexRowGap}>
+                      <Icon name="file-text" size={14} color={colors.primaryAlt} />
+                      <Text style={styles.summaryBadgeText}>TICKET RESERVATION</Text>
+                    </View>
+                    <View style={styles.secureBadge}>
+                      <Icon name="shield" size={12} color="#15803D" />
+                      <Text style={styles.secureBadgeText}>Secure SSL</Text>
+                    </View>
+                  </View>
+
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Booking Ticket</Text>
+                    <Text style={styles.summaryLabel}>Queue Ticket Fee</Text>
                     <Text style={styles.summaryVal}>$5.00</Text>
                   </View>
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Service Fee</Text>
+                    <Text style={styles.summaryLabel}>Service & Platform Fee</Text>
                     <Text style={styles.summaryVal}>$0.50</Text>
                   </View>
+
                   <View style={[styles.summaryRow, styles.summaryTotalRow]}>
-                    <Text style={styles.summaryTotalLabel}>Total Amount</Text>
+                    <Text style={styles.summaryTotalLabel}>Total Amount Due</Text>
                     <Text style={styles.summaryTotalVal}>$5.50</Text>
                   </View>
                 </View>
 
+                {/* Payment Method Selector Grid */}
                 <Text style={styles.methodTitle}>Select Payment Method</Text>
-                <View style={styles.chipRow}>
-                  {(['Orange Money', 'PayPal', 'Stripe', 'Credit Card'] as PaymentMethod[]).map(method => (
-                    <TouchableOpacity
-                      key={method}
-                      style={[styles.dateChip, selectedMethod === method && styles.dateChipActive]}
-                      onPress={() => setSelectedMethod(method)}>
-                      <Text style={[styles.dateChipText, selectedMethod === method && styles.dateChipTextActive]}>{method}</Text>
-                    </TouchableOpacity>
-                  ))}
+                <View style={styles.paymentMethodsGrid}>
+                  {[
+                    { key: 'Orange Money', iconName: 'smartphone', color: '#EA580C', bg: '#FFF3E0' },
+                    { key: 'Credit Card', iconName: 'credit-card', color: '#1D4ED8', bg: '#E8F0FE' },
+                    { key: 'PayPal', iconName: 'dollar', color: '#003087', bg: '#E8F0FE' },
+                    { key: 'Stripe', iconName: 'zap', color: '#7C3AED', bg: '#F3E8FF' },
+                  ].map(item => {
+                    const active = selectedMethod === item.key;
+                    return (
+                      <TouchableOpacity
+                        key={item.key}
+                        activeOpacity={0.8}
+                        style={[
+                          styles.paymentGridCard,
+                          active && { borderColor: item.color, backgroundColor: item.bg },
+                        ]}
+                        onPress={() => {
+                          setPaymentError(null);
+                          setSelectedMethod(item.key as PaymentMethod);
+                        }}>
+                        <Icon name={item.iconName as IconName} size={18} color={active ? item.color : colors.gray} />
+                        <Text style={[styles.paymentCardLabel, active && { color: item.color, fontWeight: '700' }]}>
+                          {item.key}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
 
+                {/* Method Specific Inputs */}
                 {selectedMethod === 'Orange Money' && (
-                  <TextField
-                    label="Orange Money Phone / Account No."
-                    value={accountNumber}
-                    onChangeText={setAccountNumber}
-                    keyboardType="phone-pad"
-                    placeholder="+225 0700000000"
-                  />
+                  <View style={styles.methodInputBox}>
+                    <TextField
+                      label="Orange Money Account / Mobile No."
+                      value={accountNumber}
+                      onChangeText={t => { setPaymentError(null); setAccountNumber(t); }}
+                      keyboardType="phone-pad"
+                      placeholder="+225 0700000000"
+                    />
+                  </View>
                 )}
 
                 {selectedMethod === 'PayPal' && (
-                  <TextField
-                    label="PayPal Email Address"
-                    value={paypalEmail}
-                    onChangeText={setPaypalEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholder="user@paypal.com"
-                  />
+                  <View style={styles.methodInputBox}>
+                    <TextField
+                      label="PayPal Email Address"
+                      value={paypalEmail}
+                      onChangeText={t => { setPaymentError(null); setPaypalEmail(t); }}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      placeholder="user@paypal.com"
+                    />
+                  </View>
                 )}
 
                 {(selectedMethod === 'Credit Card' || selectedMethod === 'Stripe') && (
-                  <>
+                  <View style={styles.methodInputBox}>
                     <TextField
                       label="Card Number"
                       value={cardNumber}
-                      onChangeText={setCardNumber}
+                      onChangeText={t => { setPaymentError(null); setCardNumber(t); }}
                       keyboardType="numeric"
                       placeholder="4111 2222 3333 4444"
                     />
@@ -817,7 +984,7 @@ export default function Home() {
                         <TextField
                           label="Expiry (MM/YY)"
                           value={cardExpiry}
-                          onChangeText={setCardExpiry}
+                          onChangeText={t => { setPaymentError(null); setCardExpiry(t); }}
                           placeholder="12/28"
                         />
                       </View>
@@ -825,26 +992,35 @@ export default function Home() {
                         <TextField
                           label="CVV"
                           value={cardCvv}
-                          onChangeText={setCardCvv}
+                          onChangeText={t => { setPaymentError(null); setCardCvv(t); }}
                           keyboardType="numeric"
                           secureTextEntry
                           placeholder="123"
                         />
                       </View>
                     </View>
-                  </>
+                  </View>
                 )}
 
-                {paymentError ? <Text style={styles.errorTextSmall}>{paymentError}</Text> : null}
+                {/* Validation Error Alert Card */}
+                {paymentError ? (
+                  <View style={styles.errorAlertCard}>
+                    <Icon name="alert-triangle" size={18} color="#DC2626" />
+                    <Text style={styles.errorAlertText}>{paymentError}</Text>
+                  </View>
+                ) : null}
 
                 <PrimaryButton title="Confirm & Pay ($5.50)" onPress={onSubmitPayment} style={styles.sheetButton} />
-                <TouchableOpacity onPress={() => setPaymentStep('details')}>
-                  <Text style={styles.sheetCancel}>Back to Details</Text>
+                <TouchableOpacity onPress={() => setPaymentStep('details')} style={styles.backBtnWrap}>
+                  <View style={styles.flexRowGap}>
+                    <Icon name="arrow-left" size={14} color={colors.gray} />
+                    <Text style={styles.sheetCancel}>Back to Visitor Details</Text>
+                  </View>
                 </TouchableOpacity>
               </>
             )}
           </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -852,110 +1028,520 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.white },
-  searchWrap: { position: 'absolute', left: 16, right: 16, zIndex: 10 },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  flexRowGap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  topFloatingHeader: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    height: 48,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  searchIconWrap: {
+    marginRight: 8,
+  },
   searchInput: {
     flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: '500',
     color: colors.textDark,
+    paddingVertical: 0,
+  },
+  predictionsList: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    marginTop: 8,
+    overflow: 'hidden',
+    elevation: 7,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  predictionRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  predictionText: {
+    fontSize: 14,
+    color: colors.textDark,
+    fontWeight: '500',
+  },
+  categoryBar: {
+    marginTop: 10,
+  },
+  categoryList: {
+    gap: 8,
+  },
+  categoryChip: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
-  predictionsList: { backgroundColor: colors.white, borderRadius: 10, marginTop: 6, overflow: 'hidden' },
-  predictionRow: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.backgroundLightAlt },
-  predictionText: { fontSize: 14, color: colors.textDark },
+  categoryChipActive: {
+    backgroundColor: colors.primaryAlt,
+    borderColor: colors.primaryAlt,
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textDark,
+  },
+  categoryChipTextActive: {
+    color: colors.white,
+    fontWeight: '700',
+  },
   routeBanner: {
     position: 'absolute',
     left: 16,
     right: 16,
     zIndex: 9,
-    backgroundColor: colors.textDarker,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    backgroundColor: '#1E1E24',
+    borderRadius: 16,
+    paddingHorizontal: 18,
     paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 7,
+    borderWidth: 1,
+    borderColor: '#33333E',
   },
-  routeBannerContent: { flex: 1 },
-  routeBannerText: { color: colors.white, fontSize: 14, fontWeight: '600' },
-  openMapsLink: { color: colors.primaryAlt, fontSize: 12, fontWeight: '700', marginTop: 4 },
-  clearRouteText: { color: colors.grayLight, fontSize: 18, fontWeight: '700', paddingLeft: 12 },
-  zoomContainer: {
+  routeBannerContent: {
+    flex: 1,
+  },
+  routeBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  routeBannerText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  openMapsLink: {
+    color: colors.primaryAlt,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  closeRouteBtn: {
+    paddingLeft: 12,
+  },
+  clearRouteText: {
+    color: colors.grayLight,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  mapControlsContainer: {
     position: 'absolute',
     right: 16,
-    bottom: 90,
+    bottom: 24,
     zIndex: 10,
     backgroundColor: colors.white,
-    borderRadius: 10,
-    elevation: 4,
+    borderRadius: 16,
+    elevation: 6,
     shadowColor: '#000',
     shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
   },
-  zoomBtn: {
+  controlBtn: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.backgroundLightAlt,
   },
-  zoomText: { fontSize: 22, fontWeight: '700', color: colors.textDarker },
-  map: { flex: 1 },
-  mapPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: colors.gray, fontSize: 14 },
-  errorTextSmall: { color: '#e53935', fontSize: 13, marginTop: 10 },
-  categoryBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: 12, backgroundColor: colors.white },
-  categoryList: { paddingHorizontal: 16, gap: 10 },
-  categoryChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginRight: 10 },
-  categoryChipActive: { backgroundColor: colors.primaryAlt, borderColor: colors.primaryAlt },
-  categoryChipText: { fontSize: 13, color: colors.textDark },
-  categoryChipTextActive: { color: colors.white },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheetScroll: { maxHeight: '85%' },
-  sheet: { backgroundColor: colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
-  serviceImage: { width: '100%', height: 160, borderRadius: 12, marginBottom: 12 },
-  sheetTitle: { fontSize: 18, fontWeight: '700', color: colors.textDarker },
-  sheetSubtitle: { fontSize: 14, color: colors.gray, marginTop: 2 },
-  sheetBody: { fontSize: 14, color: colors.textDark, marginTop: 12, lineHeight: 20 },
-  crowdStatusCard: { backgroundColor: colors.backgroundLight, borderRadius: 10, padding: 10, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  crowdBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  crowdLow: { backgroundColor: '#e8f5e9' },
-  crowdModerate: { backgroundColor: '#fff3e0' },
-  crowdHigh: { backgroundColor: '#ffebee' },
-  crowdBadgeText: { fontSize: 12, fontWeight: '700' },
-  queueMetaText: { fontSize: 12, color: colors.textDark, fontWeight: '500' },
-  actionRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  routeBtn: { flex: 1, borderWidth: 1, borderColor: colors.primary, borderRadius: 10, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 },
-  routeBtnText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
-  googleMapsBtn: { flex: 1, backgroundColor: colors.primary, borderRadius: 10, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 },
-  googleMapsBtnText: { color: colors.white, fontSize: 13, fontWeight: '600' },
-  sheetButton: { marginTop: 16 },
-  sheetCancel: { textAlign: 'center', color: colors.gray, fontSize: 14, marginTop: 16, marginBottom: 8 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, marginBottom: 12 },
-  dateChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  dateChipActive: { backgroundColor: colors.primaryAlt, borderColor: colors.primaryAlt },
-  dateChipText: { fontSize: 13, color: colors.textDark },
-  dateChipTextActive: { color: colors.white },
-  summaryCard: { backgroundColor: colors.backgroundLight, borderRadius: 12, padding: 14, marginTop: 14, marginBottom: 10 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  summaryLabel: { fontSize: 13, color: colors.gray },
-  summaryVal: { fontSize: 13, color: colors.textDark, fontWeight: '500' },
-  summaryTotalRow: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8, marginTop: 4, marginBottom: 0 },
-  summaryTotalLabel: { fontSize: 14, fontWeight: '700', color: colors.textDarker },
-  summaryTotalVal: { fontSize: 15, fontWeight: '700', color: colors.primary },
-  methodTitle: { fontSize: 14, fontWeight: '600', color: colors.textDark, marginTop: 8 },
-  cardInline: { flexDirection: 'row', gap: 12 },
-  cardFlex: { flex: 1 },
+  controlDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+  },
+  zoomText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.textDarker,
+  },
+  map: {
+    flex: 1,
+  },
+  mapPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    color: colors.gray,
+    fontSize: 14,
+  },
+  errorTextSmall: {
+    color: '#e53935',
+    fontSize: 13,
+    marginTop: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  sheetScroll: {
+    maxHeight: '85%',
+  },
+  sheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E0E0E0',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  serviceImage: {
+    width: '100%',
+    height: 170,
+    borderRadius: 16,
+    marginBottom: 14,
+  },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textDarker,
+  },
+  sheetSubtitle: {
+    fontSize: 14,
+    color: colors.gray,
+    marginTop: 2,
+  },
+  sheetBody: {
+    fontSize: 14,
+    color: colors.textDark,
+    marginTop: 12,
+    lineHeight: 22,
+  },
+  crowdStatusCard: {
+    backgroundColor: '#FFF8F0',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#FFE8DA',
+  },
+  crowdBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  crowdLow: {
+    backgroundColor: '#DCFCE7',
+  },
+  crowdModerate: {
+    backgroundColor: '#FEF3C7',
+  },
+  crowdHigh: {
+    backgroundColor: '#FEE2E2',
+  },
+  crowdBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  queueMetaText: {
+    fontSize: 12,
+    color: colors.textDark,
+    fontWeight: '600',
+    flex: 1,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  routeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: colors.primaryAlt,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 13,
+  },
+  routeBtnText: {
+    color: colors.primaryAlt,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  bookBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: colors.primaryAlt,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 13,
+  },
+  bookBtnText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  closeModalBtn: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  sheetButton: {
+    marginTop: 20,
+  },
+  sheetCancel: {
+    textAlign: 'center',
+    color: colors.gray,
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  dateChip: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FAFAFA',
+  },
+  dateChipActive: {
+    backgroundColor: colors.primaryAlt,
+    borderColor: colors.primaryAlt,
+  },
+  dateChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textDark,
+  },
+  dateChipTextActive: {
+    color: colors.white,
+    fontWeight: '700',
+  },
+  summaryCard: {
+    backgroundColor: '#FFF8F0',
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FFE8DA',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: colors.gray,
+  },
+  summaryVal: {
+    fontSize: 13,
+    color: colors.textDark,
+    fontWeight: '600',
+  },
+  summaryTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#FFE0CC',
+    paddingTop: 10,
+    marginTop: 4,
+    marginBottom: 0,
+  },
+  summaryTotalLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textDarker,
+  },
+  summaryTotalVal: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  methodTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textDark,
+    marginTop: 10,
+  },
+  cardInline: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cardFlex: {
+    flex: 1,
+  },
+  bookingMiniSummary: {
+    backgroundColor: '#FFF8F0',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FFE8DA',
+  },
+  bookingMiniTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textDarker,
+  },
+  bookingMiniMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  bookingMiniMetaText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primaryAlt,
+  },
+  bookingDot: {
+    fontSize: 12,
+    color: colors.gray,
+    marginHorizontal: 4,
+  },
+  quickFieldGroup: {
+    marginTop: 10,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textDark,
+    marginBottom: 4,
+  },
+  summaryBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  summaryBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primaryAlt,
+    letterSpacing: 0.5,
+  },
+  secureBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+  },
+  secureBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  paymentMethodsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  paymentGridCard: {
+    flex: 1,
+    minWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  paymentCardLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textDark,
+  },
+  methodInputBox: {
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  errorAlertCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+    gap: 10,
+  },
+  errorAlertText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#DC2626',
+    flex: 1,
+  },
+  backBtnWrap: {
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
 });

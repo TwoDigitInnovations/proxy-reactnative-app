@@ -101,26 +101,29 @@ export default function HomeProvider() {
         <PageHeader title={`Hi, ${userDetail?.name ?? 'Provider'}`} />
 
         <View style={styles.availabilityRow}>
-          <Text style={styles.availabilityLabel}>Available for appointments</Text>
+          <View>
+            <Text style={styles.availabilityTitle}>Accepting Appointments</Text>
+            <Text style={styles.availabilitySubtitle}>Show agency listing as available on map</Text>
+          </View>
           <Switch
             value={isAvailable}
             onValueChange={toggleAvailability}
             disabled={togglingAvailability}
-            trackColor={{ true: colors.primaryAlt, false: colors.grayLight }}
+            trackColor={{ true: colors.primaryAlt, false: '#D1D5DB' }}
           />
         </View>
 
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{status?.totalAppoint ?? 0}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+          <View style={[styles.statCard, { backgroundColor: '#E8F0FE' }]}>
+            <Text style={[styles.statValue, { color: '#1D4ED8' }]}>{status?.totalAppoint ?? 0}</Text>
+            <Text style={styles.statLabel}>Total Bookings</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{status?.pendingAppoint ?? 0}</Text>
+          <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
+            <Text style={[styles.statValue, { color: '#D97706' }]}>{status?.pendingAppoint ?? 0}</Text>
             <Text style={styles.statLabel}>Pending</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{status?.completedAppoint ?? 0}</Text>
+          <View style={[styles.statCard, { backgroundColor: '#DCFCE7' }]}>
+            <Text style={[styles.statValue, { color: '#15803D' }]}>{status?.completedAppoint ?? 0}</Text>
             <Text style={styles.statLabel}>Completed</Text>
           </View>
         </View>
@@ -128,7 +131,7 @@ export default function HomeProvider() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
           <TouchableOpacity onPress={() => navigation.navigate('MyAppointmentsProvider' as never)}>
-            <Text style={styles.seeAll}>See All</Text>
+            <Text style={styles.seeAll}>See All ›</Text>
           </TouchableOpacity>
         </View>
 
@@ -155,35 +158,46 @@ export default function HomeProvider() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.white },
+  flex: { flex: 1, backgroundColor: '#F8F9FA' },
   loading: { flex: 1 },
   scroll: { paddingBottom: 40 },
   availabilityRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    backgroundColor: colors.white,
+    marginHorizontal: 16,
     marginBottom: 16,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  availabilityLabel: { fontSize: 14, color: colors.textDark },
-  statsRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 12, marginBottom: 24 },
+  availabilityTitle: { fontSize: 15, fontWeight: '700', color: colors.textDarker },
+  availabilitySubtitle: { fontSize: 12, color: colors.gray, marginTop: 2 },
+  statsRow: { flexDirection: 'row', marginHorizontal: 16, gap: 10, marginBottom: 20 },
   statCard: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  statValue: { fontSize: 22, fontWeight: '700', color: colors.primary },
-  statLabel: { fontSize: 12, color: colors.gray, marginTop: 4 },
+  statValue: { fontSize: 24, fontWeight: '800' },
+  statLabel: { fontSize: 11, fontWeight: '600', color: colors.textDark, marginTop: 4 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    marginHorizontal: 16,
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '600', color: colors.textDark },
-  seeAll: { fontSize: 13, color: colors.primaryAlt, fontWeight: '600' },
-  listWrap: { paddingHorizontal: 20 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.textDarker },
+  seeAll: { fontSize: 13, color: colors.primaryAlt, fontWeight: '700' },
+  listWrap: { marginHorizontal: 16 },
 });

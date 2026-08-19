@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useUi } from '../../context/UiContext';
 import { colors } from '../../theme/colors';
 import { fontFamilies } from '../../theme/typography';
+import { Icon } from '../../components/Icon';
 import type { RootStackParamList } from '../../navigation/types';
 
 const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/i;
@@ -32,6 +34,11 @@ export default function SignIn({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitted, setSubmitted] = useState(false);
+
+  // Status Alert Modal State
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [statusType, setStatusType] = useState<'Suspended' | 'Pending'>('Pending');
+  const [statusMessage, setStatusMessage] = useState('');
 
   const emailError = submitted && !email ? 'Email is required.' : submitted && !EMAIL_PATTERN.test(email) ? 'Invalid your email' : undefined;
   const passwordError = submitted && !password ? 'Password is required.' : undefined;
@@ -50,9 +57,21 @@ export default function SignIn({ navigation }: Props) {
       setSubmitted(false);
       setEmail('');
       setPassword('');
-    } catch (err) {
+    } catch (err: any) {
       console.log('SignIn error:', err);
-      showToast(err instanceof ApiError ? err.message : 'Something went wrong');
+      const msg = err instanceof ApiError ? err.message : 'Something went wrong';
+
+      if (err instanceof ApiError && (err.status === 403 || msg.toLowerCase().includes('suspended') || msg.toLowerCase().includes('pending') || msg.toLowerCase().includes('review'))) {
+        if (msg.toLowerCase().includes('suspended')) {
+          setStatusType('Suspended');
+        } else {
+          setStatusType('Pending');
+        }
+        setStatusMessage(msg);
+        setStatusModalVisible(true);
+      } else {
+        showToast(msg);
+      }
     } finally {
       hideLoading();
     }
@@ -60,58 +79,99 @@ export default function SignIn({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.welcomeBlock}>
-          <Text style={styles.welcomeText}>Welcome</Text>
-          <Text style={styles.subText}>Please enter your sign in details.</Text>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.welcomeBlock}>
+            <Text style={styles.welcomeText}>Welcome</Text>
+            <Text style={styles.subText}>Please enter your sign in details.</Text>
+          </View>
+
+          <Image source={require('../../assets/images/bgImg.png')} style={styles.bgImage} resizeMode="contain" />
+
+          <TextField
+            label="Email"
+            placeholder="Enter email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+            error={emailError}
+          />
+          <TextField
+            label="Password"
+            placeholder="**************"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            error={passwordError}
+          />
+
+          <Text style={styles.termsText}>
+            By clicking Sign up, you agree with our{' '}
+            <Text style={styles.link} onPress={() => navigation.navigate('TermsAndConditions')}>
+              Terms and Conditions{' '}
+            </Text>
+            and{' '}
+            <Text style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy')}>
+              Privacy Policy
+            </Text>
+          </Text>
+
+          <PrimaryButton title="Sign in" onPress={handleSignIn} style={styles.signInButton} />
+
+          <Text style={styles.accountText}>
+            Didn't have any account?{' '}
+            <Text style={styles.link} onPress={() => navigation.navigate('SignUp')}>
+              Sign up
+            </Text>
+          </Text>
+
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgotPassword}>Forget Password ?</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Account Status Alert Modal Pop-up */}
+      <Modal visible={statusModalVisible} animationType="fade" transparent onRequestClose={() => setStatusModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            {/* Header Icon Circle */}
+            <View style={[styles.iconCircle, statusType === 'Suspended' ? styles.iconBgDanger : styles.iconBgWarning]}>
+              <Icon
+                name={statusType === 'Suspended' ? 'alert-triangle' : 'shield'}
+                size={34}
+                color={statusType === 'Suspended' ? '#DC2626' : '#D97706'}
+              />
+            </View>
+
+            {/* Title */}
+            <Text style={styles.modalTitle}>
+              {statusType === 'Suspended' ? 'Account Suspended' : 'Verification Pending'}
+            </Text>
+
+            {/* Subtitle Message */}
+            <Text style={styles.modalBody}>
+              {statusMessage || (statusType === 'Suspended'
+                ? 'Your account has been suspended by Admin. Please contact support.'
+                : 'Your account is under review by Admin. You will be notified once verified.')}
+            </Text>
+
+            {/* Support Note */}
+            <View style={styles.supportBox}>
+              <Icon name="file-text" size={14} color={colors.primaryAlt} />
+              <Text style={styles.supportText}>Questions? Reach us at support@proxi.com</Text>
+            </View>
+
+            {/* Action Button */}
+            <PrimaryButton
+              title="Understand & Close"
+              onPress={() => setStatusModalVisible(false)}
+              style={styles.modalBtn}
+            />
+          </View>
         </View>
-
-        <Image source={require('../../assets/images/bgImg.png')} style={styles.bgImage} resizeMode="contain" />
-
-        <TextField
-          label="Email"
-          placeholder="Enter email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          error={emailError}
-        />
-        <TextField
-          label="Password"
-          placeholder="**************"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          error={passwordError}
-        />
-
-        <Text style={styles.termsText}>
-          By clicking Sign up, you agree with our{' '}
-          <Text style={styles.link} onPress={() => navigation.navigate('TermsAndConditions')}>
-            Terms and Conditions{' '}
-          </Text>
-          and{' '}
-          <Text style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy')}>
-            Privacy Policy
-          </Text>
-        </Text>
-
-        <PrimaryButton title="Sign in" onPress={handleSignIn} style={styles.signInButton} />
-
-        <Text style={styles.accountText}>
-          Didn't have any account?{' '}
-          <Text style={styles.link} onPress={() => navigation.navigate('SignUp')}>
-            Sign up
-          </Text>
-        </Text>
-
-        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-          <Text style={styles.forgotPassword}>Forget Password ?</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -128,4 +188,73 @@ const styles = StyleSheet.create({
   signInButton: { shadowColor: colors.overlayBlue, shadowOpacity: 1, shadowRadius: 20, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
   accountText: { fontSize: 12, textAlign: 'center', color: colors.border, paddingVertical: 20, fontFamily: fontFamilies.poppins.regular },
   forgotPassword: { fontSize: 12, fontWeight: '700', textAlign: 'center', color: colors.border },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: colors.white,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  iconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  iconBgDanger: {
+    backgroundColor: '#FEE2E2',
+  },
+  iconBgWarning: {
+    backgroundColor: '#FEF3C7',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textDarker,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalBody: {
+    fontSize: 14,
+    color: colors.textDark,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  supportBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8F0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FFE8DA',
+  },
+  supportText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primaryAlt,
+  },
+  modalBtn: {
+    width: '100%',
+  },
 });

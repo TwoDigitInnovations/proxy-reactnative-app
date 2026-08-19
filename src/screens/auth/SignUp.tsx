@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { launchImageLibrary, type Asset } from 'react-native-image-picker';
 import { Text } from '../../components/Text';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
-import { authApi } from '../../api/endpoints';
-import type { UserRole } from '../../api/endpoints';
+import { authApi, type UserRole } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { useUi } from '../../context/UiContext';
 import { colors } from '../../theme/colors';
+import { Icon } from '../../components/Icon';
 import type { RootStackParamList } from '../../navigation/types';
 
 const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/i;
@@ -24,28 +25,67 @@ export default function SignUp({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [docAsset, setDocAsset] = useState<Asset | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const nameError = submitted && !fullName ? 'Name is required.' : undefined;
   const emailError = submitted && !email ? 'Email is required.' : submitted && !EMAIL_PATTERN.test(email) ? 'Invalid your email' : undefined;
   const phoneError = submitted && !phoneNumber ? 'Mobile Number is required.' : undefined;
   const passwordError = submitted && !password ? 'Password is required.' : undefined;
+  const docError = submitted && role === 'provider' && !docAsset ? 'Verification document is required for providers.' : undefined;
+
+  async function handlePickDocument() {
+    try {
+      const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8, includeBase64: true });
+      if (result.assets?.[0]) {
+        setDocAsset(result.assets[0]);
+      }
+    } catch {
+      showToast('Unable to pick document photo');
+    }
+  }
 
   async function handleSignUp() {
     setSubmitted(true);
     if (!fullName || !email || !EMAIL_PATTERN.test(email) || !phoneNumber || !password) {
       return;
     }
+    if (role === 'provider' && !docAsset) {
+      showToast('Verification document is required for Provider sign-up');
+      return;
+    }
 
     showLoading();
     try {
-      await authApi.register({ name: fullName, email, phone: phoneNumber, password, role });
-      showToast('Congratulations! Your sign-up process was successful.');
+      let docPayload: string[] = [];
+      if (docAsset) {
+        if (docAsset.base64) {
+          docPayload.push(`data:${docAsset.type || 'image/jpeg'};base64,${docAsset.base64}`);
+        } else if (docAsset.uri) {
+          docPayload.push(docAsset.uri);
+        }
+      }
+
+      const res: any = await authApi.register({
+        name: fullName,
+        email,
+        phone: phoneNumber,
+        password,
+        role,
+        document: docPayload,
+      });
+
+      const successMsg = res?.message || (role === 'provider'
+        ? 'Registration successful! Your provider account is under review by Admin.'
+        : 'Sign-up process successful.');
+
+      showToast(successMsg);
       setSubmitted(false);
       setFullName('');
       setEmail('');
       setPhoneNumber('');
       setPassword('');
+      setDocAsset(null);
       navigation.navigate('SignIn');
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : 'Something went wrong');
@@ -56,69 +96,102 @@ export default function SignUp({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.welcomeBlock}>
-          <Text style={styles.welcomeText}>Welcome</Text>
-          <Text style={styles.subText}>Please enter your sign up details.</Text>
-        </View>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.welcomeBlock}>
+            <Text style={styles.welcomeText}>Welcome</Text>
+            <Text style={styles.subText}>Please enter your sign up details.</Text>
+          </View>
 
-        <View style={styles.roleRow}>
-          <PrimaryButton
-            title="User"
-            onPress={() => setRole('user')}
-            style={[styles.roleButton, role !== 'user' && styles.roleButtonInactive]}
-            textStyle={role !== 'user' ? styles.roleButtonTextInactive : undefined}
+          <View style={styles.roleRow}>
+            <PrimaryButton
+              title="User"
+              onPress={() => setRole('user')}
+              style={[styles.roleButton, role !== 'user' && styles.roleButtonInactive]}
+              textStyle={role !== 'user' ? styles.roleButtonTextInactive : undefined}
+            />
+            <PrimaryButton
+              title="Provider"
+              onPress={() => setRole('provider')}
+              style={[styles.roleButton, role !== 'provider' && styles.roleButtonInactive]}
+              textStyle={role !== 'provider' ? styles.roleButtonTextInactive : undefined}
+            />
+          </View>
+
+          <TextField label="Name" placeholder="Enter Name" value={fullName} onChangeText={setFullName} error={nameError} />
+          <TextField
+            label="Email"
+            placeholder="Enter email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+            error={emailError}
           />
-          <PrimaryButton
-            title="Provider"
-            onPress={() => setRole('provider')}
-            style={[styles.roleButton, role !== 'provider' && styles.roleButtonInactive]}
-            textStyle={role !== 'provider' ? styles.roleButtonTextInactive : undefined}
+          <TextField
+            label="Mobile Number"
+            placeholder="Enter Mobile Number"
+            keyboardType="phone-pad"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            error={phoneError}
           />
-        </View>
+          <TextField label="Password" placeholder="**************" secureTextEntry value={password} onChangeText={setPassword} error={passwordError} />
 
-        <TextField label="Name" placeholder="Enter Name" value={fullName} onChangeText={setFullName} error={nameError} />
-        <TextField
-          label="Email"
-          placeholder="Enter email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          error={emailError}
-        />
-        <TextField
-          label="Mobile Number"
-          placeholder="Enter Mobile Number"
-          keyboardType="phone-pad"
-          value={phoneNumber}
-          onChangeText={setPhoneNumber}
-          error={phoneError}
-        />
-        <TextField label="Password" placeholder="**************" secureTextEntry value={password} onChangeText={setPassword} error={passwordError} />
+          {/* Provider Verification Document Upload Section */}
+          {role === 'provider' && (
+            <View style={styles.docSection}>
+              <Text style={styles.docSectionTitle}>Identity Verification Document *</Text>
+              <Text style={styles.docSectionSub}>Upload ID card, passport, or business license for Admin review.</Text>
 
-        <Text style={styles.termsText}>
-          By clicking Sign up, you agree with our{' '}
-          <Text style={styles.link} onPress={() => navigation.navigate('TermsAndConditions')}>
-            Terms and Conditions{' '}
+              {docAsset?.uri ? (
+                <View style={styles.docPreviewCard}>
+                  <Image source={{ uri: docAsset.uri }} style={styles.docImageThumb} />
+                  <View style={styles.docInfoWrap}>
+                    <Text style={styles.docFileName} numberOfLines={1}>
+                      {docAsset.fileName || 'Verification_Document.jpg'}
+                    </Text>
+                    <Text style={styles.docFileSize}>Ready for verification</Text>
+                  </View>
+                  <TouchableOpacity style={styles.docRemoveBtn} onPress={() => setDocAsset(null)}>
+                    <Icon name="trash" size={18} color="#DC2626" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.uploadBox} onPress={handlePickDocument} activeOpacity={0.8}>
+                  <View style={styles.uploadIconCircle}>
+                    <Icon name="file-text" size={24} color={colors.primaryAlt} />
+                  </View>
+                  <Text style={styles.uploadTitle}>Attach ID Document / License</Text>
+                  <Text style={styles.uploadSub}>Tap to browse photo gallery</Text>
+                </TouchableOpacity>
+              )}
+
+              {docError ? <Text style={styles.errorText}>{docError}</Text> : null}
+            </View>
+          )}
+
+          <Text style={styles.termsText}>
+            By clicking Sign up, you agree with our{' '}
+            <Text style={styles.link} onPress={() => navigation.navigate('TermsAndConditions')}>
+              Terms and Conditions{' '}
+            </Text>
+            and{' '}
+            <Text style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy')}>
+              Privacy Policy
+            </Text>
           </Text>
-          and{' '}
-          <Text style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy')}>
-            Privacy Policy
-          </Text>
-        </Text>
 
-        <PrimaryButton title="Next" onPress={handleSignUp} />
+          <PrimaryButton title={role === 'provider' ? 'Submit for Verification' : 'Sign Up'} onPress={handleSignUp} />
 
-        <Text style={styles.accountText}>
-          Already have any account?{' '}
-          <Text style={styles.link} onPress={() => navigation.navigate('SignIn')}>
-            Sign in
+          <Text style={styles.accountText}>
+            Already have an account?{' '}
+            <Text style={styles.link} onPress={() => navigation.navigate('SignIn')}>
+              Sign in
+            </Text>
           </Text>
-        </Text>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -129,11 +202,98 @@ const styles = StyleSheet.create({
   welcomeBlock: { alignItems: 'flex-start', marginBottom: 12 },
   welcomeText: { fontSize: 28, fontWeight: '700', color: colors.textDarker, marginBottom: 3 },
   subText: { fontSize: 14, color: colors.border },
-  roleRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  roleRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 8 },
   roleButton: { flex: 1 },
   roleButtonInactive: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primaryAlt },
   roleButtonTextInactive: { color: colors.primaryAlt },
-  termsText: { fontSize: 12, lineHeight: 16, textAlign: 'center', color: colors.border, paddingVertical: 30 },
-  link: { fontWeight: '700', color: colors.border },
-  accountText: { fontSize: 12, textAlign: 'center', color: colors.border, paddingVertical: 20 },
+  termsText: { fontSize: 12, lineHeight: 16, textAlign: 'center', color: colors.border, paddingVertical: 20 },
+  link: { fontWeight: '700', color: colors.primaryAlt },
+  accountText: { fontSize: 12, textAlign: 'center', color: colors.border, paddingVertical: 16 },
+  docSection: {
+    backgroundColor: '#FFF8F0',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#FFE8DA',
+  },
+  docSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textDarker,
+  },
+  docSectionSub: {
+    fontSize: 12,
+    color: colors.gray,
+    marginTop: 2,
+    marginBottom: 12,
+  },
+  uploadBox: {
+    borderWidth: 1.5,
+    borderColor: colors.primaryAlt,
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    backgroundColor: colors.white,
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  uploadTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primaryAlt,
+  },
+  uploadSub: {
+    fontSize: 11,
+    color: colors.gray,
+    marginTop: 2,
+  },
+  docPreviewCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 12,
+  },
+  docImageThumb: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+  },
+  docInfoWrap: {
+    flex: 1,
+  },
+  docFileName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textDark,
+  },
+  docFileSize: {
+    fontSize: 11,
+    color: '#15803D',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  docRemoveBtn: {
+    padding: 6,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 12,
+    marginTop: 6,
+    fontWeight: '600',
+  },
 });

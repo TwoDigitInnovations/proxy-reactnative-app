@@ -13,6 +13,7 @@ export interface RegisterPayload {
   phone: string;
   password: string;
   role: UserRole;
+  document?: string[];
 }
 
 export const authApi = {
