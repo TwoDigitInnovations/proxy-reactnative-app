@@ -13,6 +13,7 @@ import PaymentSuccess from '../screens/user/PaymentSuccess';
 import PrivacyPolicy from '../screens/user/PrivacyPolicy';
 import TermsAndConditions from '../screens/user/TermsAndConditions';
 import ReportProblem from '../screens/user/ReportProblem';
+import ProviderReviews from '../screens/common/ProviderReviews';
 import type { RootStackParamList } from './types';
 import { colors } from '../theme/colors';
 
@@ -68,6 +69,11 @@ export function RootNavigator() {
           name="ReportProblem"
           component={ReportProblem}
           options={{ headerShown: true, title: t('Report a Problem') }}
+        />
+        <Stack.Screen
+          name="ProviderReviews"
+          component={ProviderReviews}
+          options={{ headerShown: true, title: t('Reviews & Ratings') }}
         />
       </Stack.Navigator>
     </NavigationContainer>

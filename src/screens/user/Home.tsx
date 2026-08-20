@@ -31,6 +31,7 @@ import { NotificationBellButton, useNotifications } from '../../context/Notifica
 import { getCurrentLocation, requestLocationPermission } from '../../utils/location';
 import { colors } from '../../theme/colors';
 import { Icon, type IconName } from '../../components/Icon';
+import { RatingStat } from '../../components/StarRating';
 import { GOOGLE_MAPS_API_KEY } from '../../config/maps';
 import type { Category, ServiceListing } from '../../types/models';
 import type { RootStackParamList } from '../../navigation/types';
@@ -575,6 +576,14 @@ export default function Home() {
     }
   }
 
+  function openProviderReviews(service: ServiceListing) {
+    setShowServiceModal(false);
+    navigation.navigate('ProviderReviews', {
+      providerId: service.user?._id,
+      providerName: service.user?.name,
+    });
+  }
+
   const nameError = submitted && !payName ? t('Name is required.') : undefined;
   const emailError = submitted && !payEmail ? t('Email is required.') : undefined;
   const phoneError = submitted && !payPhone ? t('Phone is required.') : undefined;
@@ -718,6 +727,20 @@ export default function Home() {
                 ) : null}
                 <Text style={styles.sheetTitle}>{selectedService.service_name}</Text>
                 <Text style={styles.sheetSubtitle}>{selectedService.user?.name}</Text>
+
+                <TouchableOpacity
+                  style={styles.ratingRow}
+                  activeOpacity={0.7}
+                  onPress={() => openProviderReviews(selectedService)}>
+                  <RatingStat
+                    average={selectedService.averageRating ?? 0}
+                    count={selectedService.reviewCount ?? 0}
+                    size={15}
+                  />
+                  {(selectedService.reviewCount ?? 0) > 0 ? (
+                    <Text style={styles.viewReviewsText}>{t('View all reviews')}</Text>
+                  ) : null}
+                </TouchableOpacity>
 
                 <View style={styles.crowdStatusCard}>
                   <View
@@ -1325,6 +1348,18 @@ const styles = StyleSheet.create({
     color: colors.textDark,
     marginTop: 12,
     lineHeight: 22,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    gap: 10,
+  },
+  viewReviewsText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primaryAlt,
   },
   crowdStatusCard: {
     backgroundColor: '#FFF8F0',

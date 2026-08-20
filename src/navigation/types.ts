@@ -7,6 +7,7 @@ export type RootStackParamList = {
   PrivacyPolicy: undefined;
   TermsAndConditions: undefined;
   ReportProblem: undefined;
+  ProviderReviews: { providerId?: string; providerName?: string } | undefined;
 };
 
 export type UserTabParamList = {

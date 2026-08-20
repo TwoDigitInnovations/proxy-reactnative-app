@@ -23,6 +23,8 @@ import {
   ArrowLeft,
   Search,
   X,
+  Star,
+  MessageSquare,
   LucideProps
 } from 'lucide-react-native';
 
@@ -49,7 +51,9 @@ export type IconName =
   | 'check-circle'
   | 'arrow-left'
   | 'search'
-  | 'x';
+  | 'x'
+  | 'star'
+  | 'message-square';
 
 interface IconProps extends LucideProps {
   name: IconName;
@@ -105,6 +109,10 @@ export function Icon({ name, size = 20, color = '#363636', ...props }: IconProps
       return <Search size={size} color={color} {...props} />;
     case 'x':
       return <X size={size} color={color} {...props} />;
+    case 'star':
+      return <Star size={size} color={color} {...props} />;
+    case 'message-square':
+      return <MessageSquare size={size} color={color} {...props} />;
     default:
       return <User size={size} color={color} {...props} />;
   }

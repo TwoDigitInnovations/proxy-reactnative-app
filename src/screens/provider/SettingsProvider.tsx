@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PageHeader } from '../../components/PageHeader';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { StarRating } from '../../components/StarRating';
+import { reviewApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme/colors';
 import { Icon, type IconName } from '../../components/Icon';
+import type { RatingSummary } from '../../types/models';
 import type { RootStackParamList, SettingsProviderStackParamList } from '../../navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<SettingsProviderStackParamList & RootStackParamList>;
@@ -47,6 +50,24 @@ export default function SettingsProvider() {
   const navigation = useNavigation<NavigationProp>();
   const { t } = useTranslation();
   const { userDetail, logout } = useAuth();
+  const [rating, setRating] = useState<RatingSummary | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+      (async () => {
+        try {
+          const res: any = await reviewApi.getMyRatingSummary();
+          if (mounted) setRating(res?.data ?? null);
+        } catch {
+          // The rating is supplementary: keep the settings screen usable without it.
+        }
+      })();
+      return () => {
+        mounted = false;
+      };
+    }, []),
+  );
 
   function confirmLogout() {
     Alert.alert(t('Logout'), t('Are you sure you want to log out of your provider account?'), [
@@ -91,6 +112,7 @@ export default function SettingsProvider() {
           <View style={styles.roleTag}>
             <Text style={styles.roleTagText}>{t('Verified Service Provider')}</Text>
           </View>
+          <StarRating rating={rating?.averageRating ?? 0} size={15} style={styles.profileStars} />
         </View>
         <TouchableOpacity
           style={styles.editProfileBtn}
@@ -122,6 +144,27 @@ export default function SettingsProvider() {
           label={t('My Service Listings')}
           subtitle={t('Manage your agency services and time slots')}
           onPress={() => navigation.navigate('MyServiceProvider')}
+        />
+
+        <SettingsMenuItem
+          iconName="star"
+          iconColor="#B45309"
+          iconBg="#FEF3C7"
+          label={t('Reviews & Ratings')}
+          subtitle={
+            rating && rating.totalReviews > 0
+              ? t('{{average}} average from {{total}} reviews', {
+                  average: rating.averageRating.toFixed(1),
+                  total: rating.totalReviews,
+                })
+              : t('No reviews yet')
+          }
+          onPress={() =>
+            navigation.navigate('ProviderReviews', {
+              providerId: userDetail?.id ?? userDetail?._id,
+              providerName: userDetail?.name,
+            })
+          }
         />
 
         <SettingsMenuItem
@@ -241,6 +284,9 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 10,
     marginTop: 6,
+  },
+  profileStars: {
+    marginTop: 8,
   },
   roleTagText: {
     fontSize: 11,

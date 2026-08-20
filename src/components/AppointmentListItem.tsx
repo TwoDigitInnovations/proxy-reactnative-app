@@ -11,9 +11,18 @@ interface AppointmentListItemProps {
   status: AppointmentStatus;
   avatarUrl?: string;
   onPress?: () => void;
+  footer?: React.ReactNode;
 }
 
-export function AppointmentListItem({ title, subtitle, dateLabel, status, avatarUrl, onPress }: AppointmentListItemProps) {
+export function AppointmentListItem({
+  title,
+  subtitle,
+  dateLabel,
+  status,
+  avatarUrl,
+  onPress,
+  footer,
+}: AppointmentListItemProps) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} disabled={!onPress} activeOpacity={0.85}>
       <View style={styles.topRow}>
@@ -45,6 +54,8 @@ export function AppointmentListItem({ title, subtitle, dateLabel, status, avatar
         </Text>
         <StatusPill status={status} />
       </View>
+
+      {footer ? <View style={styles.footerSlot}>{footer}</View> : null}
     </TouchableOpacity>
   );
 }
@@ -74,4 +85,5 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.backgroundLightAlt, marginVertical: 12 },
   footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   date: { flex: 1, fontSize: 12, color: colors.grayAlt },
+  footerSlot: { marginTop: 12, borderTopWidth: 1, borderTopColor: colors.backgroundLightAlt, paddingTop: 12 },
 });

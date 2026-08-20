@@ -89,6 +89,21 @@ export const appointmentApi = {
   getVisitorsStatus: () => apiClient.get('appointment/getVisitorsStatus'),
 };
 
+export interface CreateReviewPayload {
+  appointment: string;
+  rating: number;
+  message?: string;
+}
+
+export const reviewApi = {
+  createReview: (data: CreateReviewPayload) => apiClient.post('review/createReview', data),
+  getReviewByAppointment: (id: string) => apiClient.get(`review/getReviewByAppointment/${id}`),
+  getReviewsByProvider: (id: string, params: PageParams) =>
+    apiClient.get(`review/getReviewsByProvider/${id}`, params),
+  getProviderRatingSummary: (id: string) => apiClient.get(`review/getProviderRatingSummary/${id}`),
+  getMyRatingSummary: () => apiClient.get('review/getMyRatingSummary'),
+};
+
 export const contentApi = {
   getContent: () => apiClient.get('content/getContent'),
 };

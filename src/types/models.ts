@@ -30,6 +30,26 @@ export interface ServiceListing {
   queueCount?: number;
   estimatedWaitMinutes?: number;
   crowdLevel?: 'Low' | 'Moderate' | 'High';
+  averageRating?: number;
+  reviewCount?: number;
+}
+
+export interface Review {
+  _id: string;
+  appointment: string;
+  user?: ServiceProviderUser | string;
+  service_provider: string;
+  service_ref?: string;
+  rating: number;
+  message?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface RatingSummary {
+  averageRating: number;
+  totalReviews: number;
+  breakdown: Record<'1' | '2' | '3' | '4' | '5', number>;
 }
 
 export interface Appointment {
@@ -52,6 +72,7 @@ export interface Appointment {
   service_ref?: string;
   service_provider?: ServiceProviderUser;
   user?: ServiceProviderUser;
+  review?: Review | null;
   createdAt: string;
 }
 

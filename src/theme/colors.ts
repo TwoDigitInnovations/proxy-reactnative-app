@@ -11,6 +11,8 @@ export const colors = {
   grayLight: '#BFBFBF',
   overlayBlue: '#2048BD33',
   success: '#1B7F3B',
+  star: '#F5A623',
+  starEmpty: '#E2E2E2',
   successLight: '#E4F7E7',
   white: '#FFFFFF',
   black: '#000000',
