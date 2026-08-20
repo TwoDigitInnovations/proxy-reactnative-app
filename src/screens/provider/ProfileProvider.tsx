@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -34,6 +35,7 @@ interface ProfileSnapshot {
 }
 
 export default function ProfileProvider() {
+  const { t } = useTranslation();
   const { userDetail, updateUserDetail } = useAuth();
   const { showLoading, hideLoading, showToast } = useUi();
 
@@ -68,7 +70,7 @@ export default function ProfileProvider() {
           setExistingDocuments(profile.document ?? []);
         }
       } catch (err) {
-        showToast(err instanceof ApiError ? err.message : 'Unable to load profile');
+        showToast(err instanceof ApiError ? err.message : t('Unable to load profile'));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -127,8 +129,8 @@ export default function ProfileProvider() {
     setNewDocuments(prev => prev.filter(d => d.uri !== uri));
   }
 
-  const nameError = submitted && !name ? 'Name is required.' : undefined;
-  const emailError = submitted && !email ? 'Email is required.' : undefined;
+  const nameError = submitted && !name ? t('Name is required.') : undefined;
+  const emailError = submitted && !email ? t('Email is required.') : undefined;
 
   async function handleSave() {
     setSubmitted(true);
@@ -154,14 +156,14 @@ export default function ProfileProvider() {
         await updateUserDetail({ ...userDetail, ...res.data });
         setExistingDocuments(res.data.document ?? []);
       }
-      showToast('Profile updated successfully');
+      showToast(t('Profile updated successfully'));
       setIsEdit(false);
       setSubmitted(false);
       setNewPhoto(null);
       setNewDocuments([]);
       snapshot.current = null;
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Something went wrong');
+      showToast(err instanceof ApiError ? err.message : t('Something went wrong'));
     } finally {
       hideLoading();
     }
@@ -207,7 +209,7 @@ export default function ProfileProvider() {
           </TouchableOpacity>
 
           <Text style={styles.heroName} numberOfLines={1}>
-            {name || 'Your profile'}
+            {name || t('Your profile')}
           </Text>
           {email ? (
             <Text style={styles.heroEmail} numberOfLines={1}>
@@ -216,26 +218,26 @@ export default function ProfileProvider() {
           ) : null}
 
           <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>Service Provider</Text>
+            <Text style={styles.heroBadgeText}>{t('Service Provider')}</Text>
           </View>
 
-          {isEdit ? <Text style={styles.heroHint}>Tap the photo to change it</Text> : null}
+          {isEdit ? <Text style={styles.heroHint}>{t('Tap the photo to change it')}</Text> : null}
         </View>
 
-        <SectionCard title="Personal details">
+        <SectionCard title={t('Personal details')}>
           {isEdit ? (
             <View style={styles.fieldStack}>
               <TextField
-                label="Name"
+                label={t('Name')}
                 value={name}
                 onChangeText={setName}
                 editable
-                placeholder="Enter your full name"
+                placeholder={t('Enter your full name')}
                 error={nameError}
                 style={styles.input}
               />
               <TextField
-                label="Email"
+                label={t('Email')}
                 value={email}
                 onChangeText={setEmail}
                 editable
@@ -246,61 +248,61 @@ export default function ProfileProvider() {
                 style={styles.input}
               />
               <TextField
-                label="Phone"
+                label={t('Phone')}
                 value={phone}
                 onChangeText={setPhone}
                 editable
                 keyboardType="phone-pad"
-                placeholder="Enter your phone number"
+                placeholder={t('Enter your phone number')}
                 style={styles.input}
               />
               <TextField
-                label="Company"
+                label={t('Company')}
                 value={company}
                 onChangeText={setCompany}
                 editable
-                placeholder="Enter your company or business name"
+                placeholder={t('Enter your company or business name')}
                 style={styles.input}
               />
             </View>
           ) : (
             <View>
-              <InfoRow label="Name" value={name} />
-              <InfoRow label="Email" value={email} />
-              <InfoRow label="Phone" value={phone} />
-              <InfoRow label="Company" value={company} last />
+              <InfoRow label={t('Name')} value={name} />
+              <InfoRow label={t('Email')} value={email} />
+              <InfoRow label={t('Phone')} value={phone} />
+              <InfoRow label={t('Company')} value={company} last />
             </View>
           )}
         </SectionCard>
 
-        <SectionCard title="About us">
+        <SectionCard title={t('About us')}>
           {isEdit ? (
             <TextField
-              label="Tell customers about your service"
+              label={t('Tell customers about your service')}
               value={aboutUs}
               onChangeText={setAboutUs}
               editable
               multiline
               maxLength={500}
-              placeholder="Describe your experience, services and what makes you stand out."
+              placeholder={t('Describe your experience, services and what makes you stand out.')}
               style={[styles.input, styles.textArea]}
             />
           ) : (
             <Text style={[styles.aboutText, !aboutUs && styles.infoValueEmpty]}>
-              {aboutUs || 'No description added yet.'}
+              {aboutUs || t('No description added yet.')}
             </Text>
           )}
         </SectionCard>
 
         <SectionCard
-          title="Documents"
+          title={t('Documents')}
           action={
             <Text style={styles.cardCount}>
               {documentCount}/{MAX_DOCUMENTS}
             </Text>
           }>
           {documentCount === 0 && !isEdit ? (
-            <Text style={[styles.aboutText, styles.infoValueEmpty]}>No documents uploaded yet.</Text>
+            <Text style={[styles.aboutText, styles.infoValueEmpty]}>{t('No documents uploaded yet.')}</Text>
           ) : (
             <View style={styles.documentsRow}>
               {existingDocuments.map(uri => (
@@ -332,14 +334,14 @@ export default function ProfileProvider() {
               {isEdit && canAddDocuments ? (
                 <TouchableOpacity style={styles.addDocumentButton} onPress={handlePickDocuments} activeOpacity={0.7}>
                   <Text style={styles.addDocumentIcon}>+</Text>
-                  <Text style={styles.addDocumentText}>Add</Text>
+                  <Text style={styles.addDocumentText}>{t('Add')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
           )}
           {isEdit ? (
             <Text style={styles.documentsHint}>
-              Upload up to {MAX_DOCUMENTS} images of your certificates or IDs.
+              {t('Upload up to {{max}} images of your certificates or IDs.', { max: MAX_DOCUMENTS })}
             </Text>
           ) : null}
         </SectionCard>
@@ -347,15 +349,15 @@ export default function ProfileProvider() {
         {isEdit ? (
           <View style={styles.actionRow}>
             <PrimaryButton
-              title="Cancel"
+              title={t('Cancel')}
               onPress={cancelEditing}
               style={styles.secondaryButton}
               textStyle={styles.secondaryButtonText}
             />
-            <PrimaryButton title="Save Changes" onPress={handleSave} style={styles.primaryButton} />
+            <PrimaryButton title={t('Save Changes')} onPress={handleSave} style={styles.primaryButton} />
           </View>
         ) : (
-          <PrimaryButton title="Edit Profile" onPress={startEditing} style={styles.fullButton} />
+          <PrimaryButton title={t('Edit Profile')} onPress={startEditing} style={styles.fullButton} />
         )}
       </ScrollView>
     </KeyboardAvoidingView>

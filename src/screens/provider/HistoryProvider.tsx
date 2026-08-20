@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../components/PageHeader';
 import { AppointmentListItem } from '../../components/AppointmentListItem';
 import { EmptyState } from '../../components/EmptyState';
@@ -11,6 +12,7 @@ import { colors } from '../../theme/colors';
 import type { Appointment } from '../../types/models';
 
 export default function HistoryProvider() {
+  const { t } = useTranslation();
   const { userDetail } = useAuth();
   const providerId = userDetail?.id ?? userDetail?._id;
 
@@ -27,7 +29,7 @@ export default function HistoryProvider() {
 
   return (
     <View style={styles.flex}>
-      <PageHeader title="History" />
+      <PageHeader title={t('History')} />
       {loading ? (
         <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />
       ) : (
@@ -38,10 +40,10 @@ export default function HistoryProvider() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.primary]} />}
           onEndReachedThreshold={0.4}
           onEndReached={loadMore}
-          ListEmptyComponent={<EmptyState message="No appointment history yet." />}
+          ListEmptyComponent={<EmptyState message={t('No appointment history yet.')} />}
           renderItem={({ item }) => (
             <AppointmentListItem
-              title={item.user?.name ?? 'Visitor'}
+              title={item.user?.name ?? t('Visitor')}
               subtitle={item.purpose_of_visit}
               dateLabel={moment(item.full_date).format('DD MMM YYYY, h:mm A')}
               status={item.status}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { launchImageLibrary, type Asset } from 'react-native-image-picker';
 import { Text } from '../../components/Text';
@@ -18,6 +19,7 @@ const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/i;
 type Props = NativeStackScreenProps<RootStackParamList, 'SignUp'>;
 
 export default function SignUp({ navigation }: Props) {
+  const { t } = useTranslation();
   const { showLoading, hideLoading, showToast } = useUi();
 
   const [role, setRole] = useState<UserRole>('user');
@@ -28,11 +30,18 @@ export default function SignUp({ navigation }: Props) {
   const [docAsset, setDocAsset] = useState<Asset | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const nameError = submitted && !fullName ? 'Name is required.' : undefined;
-  const emailError = submitted && !email ? 'Email is required.' : submitted && !EMAIL_PATTERN.test(email) ? 'Invalid your email' : undefined;
-  const phoneError = submitted && !phoneNumber ? 'Mobile Number is required.' : undefined;
-  const passwordError = submitted && !password ? 'Password is required.' : undefined;
-  const docError = submitted && role === 'provider' && !docAsset ? 'Verification document is required for providers.' : undefined;
+  const nameError = submitted && !fullName ? t('Name is required.') : undefined;
+  const emailError = submitted && !email
+    ? t('Email is required.')
+    : submitted && !EMAIL_PATTERN.test(email)
+    ? t('Invalid your email')
+    : undefined;
+  const phoneError = submitted && !phoneNumber ? t('Mobile Number is required.') : undefined;
+  const passwordError = submitted && !password ? t('Password is required.') : undefined;
+  const docError =
+    submitted && role === 'provider' && !docAsset
+      ? t('Verification document is required for providers.')
+      : undefined;
 
   async function handlePickDocument() {
     try {
@@ -41,7 +50,7 @@ export default function SignUp({ navigation }: Props) {
         setDocAsset(result.assets[0]);
       }
     } catch {
-      showToast('Unable to pick document photo');
+      showToast(t('Unable to pick document photo'));
     }
   }
 
@@ -51,7 +60,7 @@ export default function SignUp({ navigation }: Props) {
       return;
     }
     if (role === 'provider' && !docAsset) {
-      showToast('Verification document is required for Provider sign-up');
+      showToast(t('Verification document is required for Provider sign-up'));
       return;
     }
 
@@ -75,9 +84,11 @@ export default function SignUp({ navigation }: Props) {
         document: docPayload,
       });
 
-      const successMsg = res?.message || (role === 'provider'
-        ? 'Registration successful! Your provider account is under review by Admin.'
-        : 'Sign-up process successful.');
+      const successMsg =
+        res?.message ||
+        (role === 'provider'
+          ? t('Registration successful! Your provider account is under review by Admin.')
+          : t('Sign-up process successful.'));
 
       showToast(successMsg);
       setSubmitted(false);
@@ -88,7 +99,7 @@ export default function SignUp({ navigation }: Props) {
       setDocAsset(null);
       navigation.navigate('SignIn');
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Something went wrong');
+      showToast(err instanceof ApiError ? err.message : t('Something went wrong'));
     } finally {
       hideLoading();
     }
@@ -99,29 +110,35 @@ export default function SignUp({ navigation }: Props) {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.welcomeBlock}>
-            <Text style={styles.welcomeText}>Welcome</Text>
-            <Text style={styles.subText}>Please enter your sign up details.</Text>
+            <Text style={styles.welcomeText}>{t('Welcome')}</Text>
+            <Text style={styles.subText}>{t('Please enter your sign up details.')}</Text>
           </View>
 
           <View style={styles.roleRow}>
             <PrimaryButton
-              title="User"
+              title={t('User')}
               onPress={() => setRole('user')}
               style={[styles.roleButton, role !== 'user' && styles.roleButtonInactive]}
               textStyle={role !== 'user' ? styles.roleButtonTextInactive : undefined}
             />
             <PrimaryButton
-              title="Provider"
+              title={t('Provider')}
               onPress={() => setRole('provider')}
               style={[styles.roleButton, role !== 'provider' && styles.roleButtonInactive]}
               textStyle={role !== 'provider' ? styles.roleButtonTextInactive : undefined}
             />
           </View>
 
-          <TextField label="Name" placeholder="Enter Name" value={fullName} onChangeText={setFullName} error={nameError} />
           <TextField
-            label="Email"
-            placeholder="Enter email"
+            label={t('Name')}
+            placeholder={t('Enter Name')}
+            value={fullName}
+            onChangeText={setFullName}
+            error={nameError}
+          />
+          <TextField
+            label={t('Email')}
+            placeholder={t('Enter email')}
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -129,20 +146,29 @@ export default function SignUp({ navigation }: Props) {
             error={emailError}
           />
           <TextField
-            label="Mobile Number"
-            placeholder="Enter Mobile Number"
+            label={t('Mobile Number')}
+            placeholder={t('Enter Mobile Number')}
             keyboardType="phone-pad"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             error={phoneError}
           />
-          <TextField label="Password" placeholder="**************" secureTextEntry value={password} onChangeText={setPassword} error={passwordError} />
+          <TextField
+            label={t('Password')}
+            placeholder="**************"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            error={passwordError}
+          />
 
           {/* Provider Verification Document Upload Section */}
           {role === 'provider' && (
             <View style={styles.docSection}>
-              <Text style={styles.docSectionTitle}>Identity Verification Document *</Text>
-              <Text style={styles.docSectionSub}>Upload ID card, passport, or business license for Admin review.</Text>
+              <Text style={styles.docSectionTitle}>{t('Identity Verification Document *')}</Text>
+              <Text style={styles.docSectionSub}>
+                {t('Upload ID card, passport, or business license for Admin review.')}
+              </Text>
 
               {docAsset?.uri ? (
                 <View style={styles.docPreviewCard}>
@@ -151,7 +177,7 @@ export default function SignUp({ navigation }: Props) {
                     <Text style={styles.docFileName} numberOfLines={1}>
                       {docAsset.fileName || 'Verification_Document.jpg'}
                     </Text>
-                    <Text style={styles.docFileSize}>Ready for verification</Text>
+                    <Text style={styles.docFileSize}>{t('Ready for verification')}</Text>
                   </View>
                   <TouchableOpacity style={styles.docRemoveBtn} onPress={() => setDocAsset(null)}>
                     <Icon name="trash" size={18} color="#DC2626" />
@@ -162,8 +188,8 @@ export default function SignUp({ navigation }: Props) {
                   <View style={styles.uploadIconCircle}>
                     <Icon name="file-text" size={24} color={colors.primaryAlt} />
                   </View>
-                  <Text style={styles.uploadTitle}>Attach ID Document / License</Text>
-                  <Text style={styles.uploadSub}>Tap to browse photo gallery</Text>
+                  <Text style={styles.uploadTitle}>{t('Attach ID Document / License')}</Text>
+                  <Text style={styles.uploadSub}>{t('Tap to browse photo gallery')}</Text>
                 </TouchableOpacity>
               )}
 
@@ -172,22 +198,25 @@ export default function SignUp({ navigation }: Props) {
           )}
 
           <Text style={styles.termsText}>
-            By clicking Sign up, you agree with our{' '}
+            {t('By clicking Sign up, you agree with our')}{' '}
             <Text style={styles.link} onPress={() => navigation.navigate('TermsAndConditions')}>
-              Terms and Conditions{' '}
+              {t('Terms and Conditions')}{' '}
             </Text>
-            and{' '}
+            {t('and')}{' '}
             <Text style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy')}>
-              Privacy Policy
+              {t('Privacy Policy')}
             </Text>
           </Text>
 
-          <PrimaryButton title={role === 'provider' ? 'Submit for Verification' : 'Sign Up'} onPress={handleSignUp} />
+          <PrimaryButton
+            title={role === 'provider' ? t('Submit for Verification') : t('Sign Up')}
+            onPress={handleSignUp}
+          />
 
           <Text style={styles.accountText}>
-            Already have an account?{' '}
+            {t('Already have an account?')}{' '}
             <Text style={styles.link} onPress={() => navigation.navigate('SignIn')}>
-              Sign in
+              {t('Sign in')}
             </Text>
           </Text>
         </ScrollView>

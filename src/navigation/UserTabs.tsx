@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
 import HomeIcon from '../assets/tabsIcon/tabs-icon-1.svg';
@@ -28,6 +29,7 @@ const iconMap: Record<keyof UserTabParamList, [React.FC<SvgProps>, React.FC<SvgP
 
 export function UserTabs() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -43,10 +45,14 @@ export function UserTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={Home} />
-      <Tab.Screen name="MyAppointments" component={MyAppointmentsStack} options={{ title: 'Appointments' }} />
-      <Tab.Screen name="History" component={History} />
-      <Tab.Screen name="Settings" component={SettingsStack} />
+      <Tab.Screen name="Home" component={Home} options={{ title: t('Home') }} />
+      <Tab.Screen
+        name="MyAppointments"
+        component={MyAppointmentsStack}
+        options={{ title: t('Appointments') }}
+      />
+      <Tab.Screen name="History" component={History} options={{ title: t('History') }} />
+      <Tab.Screen name="Settings" component={SettingsStack} options={{ title: t('Settings') }} />
     </Tab.Navigator>
   );
 }

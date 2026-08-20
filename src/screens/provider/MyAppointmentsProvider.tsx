@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'r
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import { PageHeader } from '../../components/PageHeader';
 import { AppointmentListItem } from '../../components/AppointmentListItem';
@@ -14,6 +15,7 @@ import type { Appointment } from '../../types/models';
 import type { MyAppointmentsProviderStackParamList } from '../../navigation/types';
 
 export default function MyAppointmentsProvider() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<MyAppointmentsProviderStackParamList>>();
 
   const fetchPage = useCallback(async (page: number, limit: number) => {
@@ -25,7 +27,7 @@ export default function MyAppointmentsProvider() {
 
   return (
     <View style={styles.flex}>
-      <PageHeader title="Appointments" />
+      <PageHeader title={t('Appointments')} />
       {loading ? (
         <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />
       ) : (
@@ -39,7 +41,9 @@ export default function MyAppointmentsProvider() {
           onEndReached={loadMore}
           ListHeaderComponent={
             items.length > 0 ? (
-              <Text style={styles.caption}>Open a request to view visitor details and mark it completed.</Text>
+              <Text style={styles.caption}>
+                {t('Open a request to view visitor details and mark it completed.')}
+              </Text>
             ) : undefined
           }
           ListFooterComponent={
@@ -50,13 +54,13 @@ export default function MyAppointmentsProvider() {
           ListEmptyComponent={
             <EmptyState
               icon="📅"
-              title="No appointments yet"
-              message="New visitor requests will appear here as soon as they are booked."
+              title={t('No appointments yet')}
+              message={t('New visitor requests will appear here as soon as they are booked.')}
             />
           }
           renderItem={({ item }) => (
             <AppointmentListItem
-              title={item.user?.name ?? item.name ?? 'Visitor'}
+              title={item.user?.name ?? item.name ?? t('Visitor')}
               subtitle={item.purpose_of_visit}
               dateLabel={moment(item.full_date).format('DD MMM YYYY, h:mm A')}
               status={item.status}

@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Text } from '../../components/Text';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../components/PageHeader';
 import { AppointmentListItem } from '../../components/AppointmentListItem';
 import { EmptyState } from '../../components/EmptyState';
@@ -22,6 +23,7 @@ interface VisitorsStatus {
 }
 
 export default function HomeProvider() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<ProviderTabParamList>>();
   const { userDetail, updateUserDetail } = useAuth();
   const { showToast } = useUi();
@@ -42,12 +44,12 @@ export default function HomeProvider() {
       setStatus(statusRes?.data ?? null);
       setAppointments(appointmentsRes?.data ?? []);
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Unable to load dashboard');
+      showToast(err instanceof ApiError ? err.message : t('Unable to load dashboard'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   useEffect(() => {
     load();
@@ -70,7 +72,7 @@ export default function HomeProvider() {
       }
     } catch (err) {
       setIsAvailable(!value);
-      showToast(err instanceof ApiError ? err.message : 'Unable to update availability');
+      showToast(err instanceof ApiError ? err.message : t('Unable to update availability'));
     } finally {
       setTogglingAvailability(false);
     }
@@ -84,26 +86,30 @@ export default function HomeProvider() {
     <View style={styles.flex}>
       {userDetail?.status === 'Suspended' && (
         <View style={{ backgroundColor: '#ffebee', padding: 14, borderRadius: 10, marginHorizontal: 16, marginTop: 12, borderWidth: 1, borderColor: '#ef5350' }}>
-          <Text style={{ color: '#c62828', fontWeight: 'bold', fontSize: 16 }}>Account Suspended</Text>
-          <Text style={{ color: '#d32f2f', fontSize: 13, marginTop: 4 }}>Your account has been suspended by Admin. Please contact support.</Text>
+          <Text style={{ color: '#c62828', fontWeight: 'bold', fontSize: 16 }}>{t('Account Suspended')}</Text>
+          <Text style={{ color: '#d32f2f', fontSize: 13, marginTop: 4 }}>
+            {t('Your account has been suspended by Admin. Please contact support.')}
+          </Text>
         </View>
       )}
       {userDetail?.status === 'Pending' && (
         <View style={{ backgroundColor: '#fff3e0', padding: 14, borderRadius: 10, marginHorizontal: 16, marginTop: 12, borderWidth: 1, borderColor: '#ffb74d' }}>
-          <Text style={{ color: '#e65100', fontWeight: 'bold', fontSize: 16 }}>Verification Pending</Text>
-          <Text style={{ color: '#ef6c00', fontSize: 13, marginTop: 4 }}>Your account is under verification by Admin.</Text>
+          <Text style={{ color: '#e65100', fontWeight: 'bold', fontSize: 16 }}>{t('Verification Pending')}</Text>
+          <Text style={{ color: '#ef6c00', fontSize: 13, marginTop: 4 }}>
+            {t('Your account is under verification by Admin.')}
+          </Text>
         </View>
       )}
       <ScrollView
         style={styles.flex}
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}>
-        <PageHeader title={`Hi, ${userDetail?.name ?? 'Provider'}`} />
+        <PageHeader title={t('Hi, {{name}}', { name: userDetail?.name ?? t('Provider') })} />
 
         <View style={styles.availabilityRow}>
           <View>
-            <Text style={styles.availabilityTitle}>Accepting Appointments</Text>
-            <Text style={styles.availabilitySubtitle}>Show agency listing as available on map</Text>
+            <Text style={styles.availabilityTitle}>{t('Accepting Appointments')}</Text>
+            <Text style={styles.availabilitySubtitle}>{t('Show agency listing as available on map')}</Text>
           </View>
           <Switch
             value={isAvailable}
@@ -116,33 +122,33 @@ export default function HomeProvider() {
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: '#E8F0FE' }]}>
             <Text style={[styles.statValue, { color: '#1D4ED8' }]}>{status?.totalAppoint ?? 0}</Text>
-            <Text style={styles.statLabel}>Total Bookings</Text>
+            <Text style={styles.statLabel}>{t('Total Bookings')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
             <Text style={[styles.statValue, { color: '#D97706' }]}>{status?.pendingAppoint ?? 0}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
+            <Text style={styles.statLabel}>{t('Pending')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: '#DCFCE7' }]}>
             <Text style={[styles.statValue, { color: '#15803D' }]}>{status?.completedAppoint ?? 0}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statLabel}>{t('Completed')}</Text>
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+          <Text style={styles.sectionTitle}>{t('Upcoming Appointments')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('MyAppointmentsProvider' as never)}>
-            <Text style={styles.seeAll}>See All ›</Text>
+            <Text style={styles.seeAll}>{t('See All ›')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.listWrap}>
           {appointments.length === 0 ? (
-            <EmptyState message="No pending appointments." />
+            <EmptyState message={t('No pending appointments.')} />
           ) : (
             appointments.map(item => (
               <AppointmentListItem
                 key={item._id}
-                title={item.user?.name ?? 'Visitor'}
+                title={item.user?.name ?? t('Visitor')}
                 subtitle={item.purpose_of_visit}
                 dateLabel={moment(item.full_date).format('DD MMM YYYY, h:mm A')}
                 status={item.status}

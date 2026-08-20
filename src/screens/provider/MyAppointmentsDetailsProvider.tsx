@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, View } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { InfoRow, SectionCard } from '../../components/SectionCard';
@@ -14,6 +15,7 @@ import type { Appointment } from '../../types/models';
 import type { MyAppointmentsProviderStackParamList } from '../../navigation/types';
 
 export default function MyAppointmentsDetailsProvider() {
+  const { t } = useTranslation();
   const route = useRoute<RouteProp<MyAppointmentsProviderStackParamList, 'MyAppointmentsDetailsProvider'>>();
   const { appointmentId } = route.params;
   const { showLoading, hideLoading, showToast } = useUi();
@@ -27,6 +29,8 @@ export default function MyAppointmentsDetailsProvider() {
       const res: any = await appointmentApi.getRequestAppointmentByProviderId(appointmentId);
       setAppointment(res?.data ?? null);
     } catch (err) {
+      // Store the key, not the translation, so the callback stays independent of
+      // the language and the message re-translates when it is switched.
       setError(err instanceof ApiError ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
@@ -41,10 +45,10 @@ export default function MyAppointmentsDetailsProvider() {
     showLoading();
     try {
       await appointmentApi.updateAppointmentStatusByProvider({ status: 'Completed', id: appointmentId });
-      showToast('Appointment marked as completed');
+      showToast(t('Appointment marked as completed'));
       await load();
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Something went wrong');
+      showToast(err instanceof ApiError ? err.message : t('Something went wrong'));
     } finally {
       hideLoading();
     }
@@ -64,12 +68,12 @@ export default function MyAppointmentsDetailsProvider() {
         <View style={styles.errorIconCircle}>
           <Text style={styles.errorIcon}>!</Text>
         </View>
-        <Text style={styles.errorText}>{error ?? 'Appointment not found'}</Text>
+        <Text style={styles.errorText}>{error ? t(error) : t('Appointment not found')}</Text>
       </View>
     );
   }
 
-  const visitorName = appointment.name || appointment.user?.name || 'Visitor';
+  const visitorName = appointment.name || appointment.user?.name || t('Visitor');
   const isPending = appointment.status === 'Pending';
 
   return (
@@ -96,43 +100,48 @@ export default function MyAppointmentsDetailsProvider() {
       </View>
 
       <SectionCard
-        title="Visitor details"
+        title={t('Visitor details')}
         action={
           appointment.ticketNumber ? <Text style={styles.cardAction}>#{appointment.ticketNumber}</Text> : undefined
         }>
-        <InfoRow label="Phone" value={appointment.phone} />
-        <InfoRow label="Email" value={appointment.email} />
-        <InfoRow label="Gender" value={appointment.gender} last />
+        <InfoRow label={t('Phone')} value={appointment.phone} />
+        <InfoRow label={t('Email')} value={appointment.email} />
+        <InfoRow label={t('Gender')} value={appointment.gender ? t(appointment.gender) : undefined} last />
       </SectionCard>
 
-      <SectionCard title="Appointment">
-        <InfoRow label="Check-in time" value={moment(appointment.full_date).format('DD MMM YYYY, h:mm A')} />
-        <InfoRow label="Booked on" value={moment(appointment.createdAt).format('DD MMM YYYY')} />
-        <InfoRow label="Status" value={appointment.status} last />
+      <SectionCard title={t('Appointment')}>
+        <InfoRow
+          label={t('Check-in time')}
+          value={moment(appointment.full_date).format('DD MMM YYYY, h:mm A')}
+        />
+        <InfoRow label={t('Booked on')} value={moment(appointment.createdAt).format('DD MMM YYYY')} />
+        <InfoRow label={t('Status')} value={t(appointment.status)} last />
       </SectionCard>
 
-      <SectionCard title="Purpose of visit">
+      <SectionCard title={t('Purpose of visit')}>
         <Text style={[styles.bodyText, !appointment.purpose_of_visit && styles.bodyTextEmpty]}>
-          {appointment.purpose_of_visit || 'No purpose added.'}
+          {appointment.purpose_of_visit || t('No purpose added.')}
         </Text>
       </SectionCard>
 
       {appointment.paymentMethod ? (
         <SectionCard
-          title="Payment"
-          action={<Text style={styles.cardAction}>{appointment.paymentStatus ?? 'Completed'}</Text>}>
-          <InfoRow label="Method" value={appointment.paymentMethod} />
-          <InfoRow label="Amount" value={`$${appointment.paymentAmount?.toFixed(2) ?? '5.50'}`} />
-          <InfoRow label="Transaction ID" value={appointment.transactionId} last />
+          title={t('Payment')}
+          action={
+            <Text style={styles.cardAction}>{t(appointment.paymentStatus ?? 'Completed')}</Text>
+          }>
+          <InfoRow label={t('Method')} value={appointment.paymentMethod} />
+          <InfoRow label={t('Amount')} value={`$${appointment.paymentAmount?.toFixed(2) ?? '5.50'}`} />
+          <InfoRow label={t('Transaction ID')} value={appointment.transactionId} last />
         </SectionCard>
       ) : null}
 
       {isPending ? (
-        <PrimaryButton title="Mark as Completed" onPress={handleComplete} style={styles.button} />
+        <PrimaryButton title={t('Mark as Completed')} onPress={handleComplete} style={styles.button} />
       ) : (
         <View style={styles.completedBanner}>
           <Text style={styles.completedIcon}>✓</Text>
-          <Text style={styles.completedText}>This appointment has been completed.</Text>
+          <Text style={styles.completedText}>{t('This appointment has been completed.')}</Text>
         </View>
       )}
     </ScrollView>

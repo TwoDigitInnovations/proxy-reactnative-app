@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'r
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import { PageHeader } from '../../components/PageHeader';
 import { AppointmentListItem } from '../../components/AppointmentListItem';
@@ -15,6 +16,7 @@ import type { MyAppointmentsStackParamList } from '../../navigation/types';
 
 export default function MyAppointments() {
   const navigation = useNavigation<NativeStackNavigationProp<MyAppointmentsStackParamList>>();
+  const { t } = useTranslation();
 
   const fetchPage = useCallback(async (page: number, limit: number) => {
     const res: any = await appointmentApi.getAppointmentByUser({ page, limit });
@@ -25,7 +27,7 @@ export default function MyAppointments() {
 
   return (
     <View style={styles.flex}>
-      <PageHeader title="Appointments" />
+      <PageHeader title={t('Appointments')} />
       {loading ? (
         <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />
       ) : (
@@ -38,7 +40,9 @@ export default function MyAppointments() {
           onEndReachedThreshold={0.4}
           onEndReached={loadMore}
           ListHeaderComponent={
-            items.length > 0 ? <Text style={styles.caption}>Tap a booking to see its full details.</Text> : undefined
+            items.length > 0 ? (
+              <Text style={styles.caption}>{t('Tap a booking to see its full details.')}</Text>
+            ) : undefined
           }
           ListFooterComponent={
             hasMore && items.length > 0 ? (
@@ -48,13 +52,13 @@ export default function MyAppointments() {
           ListEmptyComponent={
             <EmptyState
               icon="📅"
-              title="No appointments yet"
-              message="Book a service from the home screen and it will show up here."
+              title={t('No appointments yet')}
+              message={t('Book a service from the home screen and it will show up here.')}
             />
           }
           renderItem={({ item }) => (
             <AppointmentListItem
-              title={item.service_provider?.name ?? 'Provider'}
+              title={item.service_provider?.name ?? t('Provider')}
               subtitle={item.purpose_of_visit}
               dateLabel={moment(item.full_date).format('DD MMM YYYY, h:mm A')}
               status={item.status}

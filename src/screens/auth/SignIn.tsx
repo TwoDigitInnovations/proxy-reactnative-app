@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Text } from '../../components/Text';
 import { TextField } from '../../components/TextField';
@@ -28,6 +29,7 @@ const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/i;
 type Props = NativeStackScreenProps<RootStackParamList, 'SignIn'>;
 
 export default function SignIn({ navigation }: Props) {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const { showLoading, hideLoading, showToast } = useUi();
 
@@ -40,8 +42,12 @@ export default function SignIn({ navigation }: Props) {
   const [statusType, setStatusType] = useState<'Suspended' | 'Pending'>('Pending');
   const [statusMessage, setStatusMessage] = useState('');
 
-  const emailError = submitted && !email ? 'Email is required.' : submitted && !EMAIL_PATTERN.test(email) ? 'Invalid your email' : undefined;
-  const passwordError = submitted && !password ? 'Password is required.' : undefined;
+  const emailError = submitted && !email
+    ? t('Email is required.')
+    : submitted && !EMAIL_PATTERN.test(email)
+    ? t('Invalid your email')
+    : undefined;
+  const passwordError = submitted && !password ? t('Password is required.') : undefined;
 
   async function handleSignIn() {
     setSubmitted(true);
@@ -53,13 +59,13 @@ export default function SignIn({ navigation }: Props) {
     try {
       const res: any = await authApi.login({ email, password });
       await login(res.token, res.user);
-      showToast('You are successfully logged in');
+      showToast(t('You are successfully logged in'));
       setSubmitted(false);
       setEmail('');
       setPassword('');
     } catch (err: any) {
       console.log('SignIn error:', err);
-      const msg = err instanceof ApiError ? err.message : 'Something went wrong';
+      const msg = err instanceof ApiError ? err.message : t('Something went wrong');
 
       if (err instanceof ApiError && (err.status === 403 || msg.toLowerCase().includes('suspended') || msg.toLowerCase().includes('pending') || msg.toLowerCase().includes('review'))) {
         if (msg.toLowerCase().includes('suspended')) {
@@ -82,15 +88,15 @@ export default function SignIn({ navigation }: Props) {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.welcomeBlock}>
-            <Text style={styles.welcomeText}>Welcome</Text>
-            <Text style={styles.subText}>Please enter your sign in details.</Text>
+            <Text style={styles.welcomeText}>{t('Welcome')}</Text>
+            <Text style={styles.subText}>{t('Please enter your sign in details.')}</Text>
           </View>
 
           <Image source={require('../../assets/images/bgImg.png')} style={styles.bgImage} resizeMode="contain" />
 
           <TextField
-            label="Email"
-            placeholder="Enter email"
+            label={t('Email')}
+            placeholder={t('Enter email')}
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -98,7 +104,7 @@ export default function SignIn({ navigation }: Props) {
             error={emailError}
           />
           <TextField
-            label="Password"
+            label={t('Password')}
             placeholder="**************"
             secureTextEntry
             value={password}
@@ -107,27 +113,27 @@ export default function SignIn({ navigation }: Props) {
           />
 
           <Text style={styles.termsText}>
-            By clicking Sign up, you agree with our{' '}
+            {t('By clicking Sign up, you agree with our')}{' '}
             <Text style={styles.link} onPress={() => navigation.navigate('TermsAndConditions')}>
-              Terms and Conditions{' '}
+              {t('Terms and Conditions')}{' '}
             </Text>
-            and{' '}
+            {t('and')}{' '}
             <Text style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy')}>
-              Privacy Policy
+              {t('Privacy Policy')}
             </Text>
           </Text>
 
-          <PrimaryButton title="Sign in" onPress={handleSignIn} style={styles.signInButton} />
+          <PrimaryButton title={t('Sign in')} onPress={handleSignIn} style={styles.signInButton} />
 
           <Text style={styles.accountText}>
-            Didn't have any account?{' '}
+            {t("Didn't have any account?")}{' '}
             <Text style={styles.link} onPress={() => navigation.navigate('SignUp')}>
-              Sign up
+              {t('Sign up')}
             </Text>
           </Text>
 
           <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={styles.forgotPassword}>Forget Password ?</Text>
+            <Text style={styles.forgotPassword}>{t('Forget Password ?')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -147,25 +153,28 @@ export default function SignIn({ navigation }: Props) {
 
             {/* Title */}
             <Text style={styles.modalTitle}>
-              {statusType === 'Suspended' ? 'Account Suspended' : 'Verification Pending'}
+              {statusType === 'Suspended' ? t('Account Suspended') : t('Verification Pending')}
             </Text>
 
             {/* Subtitle Message */}
             <Text style={styles.modalBody}>
-              {statusMessage || (statusType === 'Suspended'
-                ? 'Your account has been suspended by Admin. Please contact support.'
-                : 'Your account is under review by Admin. You will be notified once verified.')}
+              {statusMessage ||
+                (statusType === 'Suspended'
+                  ? t('Your account has been suspended by Admin. Please contact support.')
+                  : t('Your account is under review by Admin. You will be notified once verified.'))}
             </Text>
 
             {/* Support Note */}
             <View style={styles.supportBox}>
               <Icon name="file-text" size={14} color={colors.primaryAlt} />
-              <Text style={styles.supportText}>Questions? Reach us at support@proxi.com</Text>
+              <Text style={styles.supportText}>
+                {t('Questions? Reach us at {{email}}', { email: 'support@proxi.com' })}
+              </Text>
             </View>
 
             {/* Action Button */}
             <PrimaryButton
-              title="Understand & Close"
+              title={t('Understand & Close')}
               onPress={() => setStatusModalVisible(false)}
               style={styles.modalBtn}
             />

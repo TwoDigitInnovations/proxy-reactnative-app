@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { UserTabs } from './UserTabs';
 import { ProviderTabs } from './ProviderTabs';
@@ -23,6 +24,7 @@ function RoleTabs() {
 }
 
 export function RootNavigator() {
+  const { t } = useTranslation();
   const { token, isLoading } = useAuth();
 
   if (isLoading) {
@@ -48,24 +50,24 @@ export function RootNavigator() {
             <Stack.Screen
               name="PaymentSuccess"
               component={PaymentSuccess}
-              options={{ headerShown: true, title: 'Confirmation' }}
+              options={{ headerShown: true, title: t('Confirmation') }}
             />
           </>
         )}
         <Stack.Screen
           name="PrivacyPolicy"
           component={PrivacyPolicy}
-          options={{ headerShown: true, title: 'Privacy Policy' }}
+          options={{ headerShown: true, title: t('Privacy Policy') }}
         />
         <Stack.Screen
           name="TermsAndConditions"
           component={TermsAndConditions}
-          options={{ headerShown: true, title: 'Terms & Conditions' }}
+          options={{ headerShown: true, title: t('Terms & Conditions') }}
         />
         <Stack.Screen
           name="ReportProblem"
           component={ReportProblem}
-          options={{ headerShown: true, title: 'Report a Problem' }}
+          options={{ headerShown: true, title: t('Report a Problem') }}
         />
       </Stack.Navigator>
     </NavigationContainer>

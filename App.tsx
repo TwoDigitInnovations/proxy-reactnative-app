@@ -6,7 +6,9 @@ import React from 'react';
 import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import './src/i18n';
 import { AuthProvider } from './src/context/AuthContext';
+import { LanguageProvider } from './src/context/LanguageContext';
 import { UiProvider } from './src/context/UiContext';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -18,13 +20,15 @@ function App() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <UiProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <RootNavigator />
-            </NotificationProvider>
-          </AuthProvider>
-        </UiProvider>
+        <LanguageProvider>
+          <UiProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <RootNavigator />
+              </NotificationProvider>
+            </AuthProvider>
+          </UiProvider>
+        </LanguageProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

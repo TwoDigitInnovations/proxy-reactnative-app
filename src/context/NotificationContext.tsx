@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../components/Text';
 import { colors } from '../theme/colors';
 import moment from 'moment';
@@ -26,6 +27,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<AppNotification[]>([
     {
       id: 'init-1',
@@ -86,34 +88,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         <View style={styles.overlay}>
           <View style={styles.modalContent}>
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Notifications & Reminders</Text>
+              <Text style={styles.headerTitle}>{t('Notifications & Reminders')}</Text>
               {notifications.length > 0 ? (
                 <TouchableOpacity onPress={clearNotifications}>
-                  <Text style={styles.clearText}>Clear All</Text>
+                  <Text style={styles.clearText}>{t('Clear All')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
 
             {notifications.length === 0 ? (
               <View style={styles.emptyWrap}>
-                <Text style={styles.emptyText}>No notifications yet</Text>
+                <Text style={styles.emptyText}>{t('No notifications yet')}</Text>
               </View>
             ) : (
               <ScrollView style={styles.scrollList} contentContainerStyle={styles.scrollContent}>
                 {notifications.map(item => (
                   <View key={item.id} style={styles.card}>
                     <View style={styles.cardTop}>
-                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <Text style={styles.cardTitle}>{t(item.title)}</Text>
                       <Text style={styles.timeText}>{moment(item.timestamp).fromNow()}</Text>
                     </View>
-                    <Text style={styles.cardMsg}>{item.message}</Text>
+                    <Text style={styles.cardMsg}>{t(item.message)}</Text>
                   </View>
                 ))}
               </ScrollView>
             )}
 
             <TouchableOpacity style={styles.closeBtn} onPress={closeNotificationTray}>
-              <Text style={styles.closeBtnText}>Close</Text>
+              <Text style={styles.closeBtnText}>{t('Close')}</Text>
             </TouchableOpacity>
           </View>
         </View>

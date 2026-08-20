@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from './Text';
 import { colors } from '../theme/colors';
 
@@ -26,10 +27,11 @@ export function SectionCard({
 }
 
 export function InfoRow({ label, value, last }: { label: string; value?: string; last?: boolean }) {
+  const { t } = useTranslation();
   return (
     <View style={[styles.infoRow, last && styles.infoRowLast]}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={[styles.infoValue, !value && styles.infoValueEmpty]}>{value || 'Not added yet'}</Text>
+      <Text style={[styles.infoValue, !value && styles.infoValueEmpty]}>{value || t('Not added yet')}</Text>
     </View>
   );
 }

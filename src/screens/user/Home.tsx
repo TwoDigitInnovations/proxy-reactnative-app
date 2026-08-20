@@ -17,6 +17,7 @@ import MapView, { Marker, Polyline, Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import moment from 'moment';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Text } from '../../components/Text';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -76,6 +77,7 @@ function decodePolyline(encoded: string): { latitude: number; longitude: number 
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { userDetail, updateUserDetail } = useAuth();
   const { showLoading, hideLoading, showToast } = useUi();
@@ -193,7 +195,7 @@ export default function Home() {
         setSelectedCategoryId(list[0]._id);
       }
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Unable to load categories');
+      showToast(err instanceof ApiError ? err.message : t('Unable to load categories'));
     }
   }
 
@@ -206,10 +208,10 @@ export default function Home() {
         });
         setServices(res?.data ?? []);
       } catch (err) {
-        showToast(err instanceof ApiError ? err.message : 'Unable to load services');
+        showToast(err instanceof ApiError ? err.message : t('Unable to load services'));
       }
     },
-    [showToast],
+    [showToast, t],
   );
 
   useEffect(() => {
@@ -258,7 +260,7 @@ export default function Home() {
         mapRef.current?.animateToRegion(newRegion, 500);
       }
     } catch {
-      showToast('Unable to find that location');
+      showToast(t('Unable to find that location'));
     }
   }
 
@@ -503,15 +505,15 @@ export default function Home() {
   async function onSubmitPayment() {
     setPaymentError(null);
     if (selectedMethod === 'Orange Money' && !accountNumber) {
-      setPaymentError('Mobile/Account Number is required.');
+      setPaymentError(t('Mobile/Account Number is required.'));
       return;
     }
     if (selectedMethod === 'PayPal' && !paypalEmail) {
-      setPaymentError('PayPal Email is required.');
+      setPaymentError(t('PayPal Email is required.'));
       return;
     }
     if ((selectedMethod === 'Credit Card' || selectedMethod === 'Stripe') && (!cardNumber || !cardExpiry || !cardCvv)) {
-      setPaymentError('Complete card details are required.');
+      setPaymentError(t('Complete card details are required.'));
       return;
     }
 
@@ -542,8 +544,13 @@ export default function Home() {
 
       const ticketNum = res?.data?.ticketNumber || 'N/A';
       addNotification(
-        'Appointment Confirmed',
-        `Your ticket #${ticketNum} for ${selectedService.service_name} on ${selectedDate} at ${selectedTime} is confirmed.`,
+        t('Appointment Confirmed'),
+        t('Your ticket #{{ticket}} for {{service}} on {{date}} at {{time}} is confirmed.', {
+          ticket: ticketNum,
+          service: selectedService.service_name,
+          date: selectedDate,
+          time: selectedTime,
+        }),
         'success',
       );
 
@@ -562,17 +569,17 @@ export default function Home() {
       setCardCvv('');
       navigation.navigate('PaymentSuccess', { appointmentId: res?.data?._id });
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Something went wrong');
+      showToast(err instanceof ApiError ? err.message : t('Something went wrong'));
     } finally {
       hideLoading();
     }
   }
 
-  const nameError = submitted && !payName ? 'Name is required.' : undefined;
-  const emailError = submitted && !payEmail ? 'Email is required.' : undefined;
-  const phoneError = submitted && !payPhone ? 'Phone is required.' : undefined;
-  const genderError = submitted && !payGender ? 'Gender is required.' : undefined;
-  const purposeError = submitted && !payPurpose ? 'Purpose of visit is required.' : undefined;
+  const nameError = submitted && !payName ? t('Name is required.') : undefined;
+  const emailError = submitted && !payEmail ? t('Email is required.') : undefined;
+  const phoneError = submitted && !payPhone ? t('Phone is required.') : undefined;
+  const genderError = submitted && !payGender ? t('Gender is required.') : undefined;
+  const purposeError = submitted && !payPurpose ? t('Purpose of visit is required.') : undefined;
 
   return (
     <View style={styles.flex}>
@@ -585,7 +592,7 @@ export default function Home() {
             </View>
             <TextInput
               style={styles.searchInput}
-              placeholder="Search location or agency..."
+              placeholder={t('Search location or agency...')}
               value={address}
               onChangeText={onChangeAddress}
               placeholderTextColor="#9CA3AF"
@@ -641,7 +648,7 @@ export default function Home() {
             </View>
             {activeTargetCoords && (
               <TouchableOpacity onPress={() => openExternalNavigation(activeTargetCoords.latitude, activeTargetCoords.longitude)}>
-                <Text style={styles.openMapsLink}>Open in Google Maps →</Text>
+                <Text style={styles.openMapsLink}>{t('Open in Google Maps →')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -724,18 +731,21 @@ export default function Home() {
                     ]}>
                     <Text style={styles.crowdBadgeText}>
                       {selectedService.crowdLevel === 'High'
-                        ? 'Heavy Rush'
+                        ? t('Heavy Rush')
                         : selectedService.crowdLevel === 'Moderate'
-                        ? 'Moderate Rush'
-                        : 'Low Rush'}
+                        ? t('Moderate Rush')
+                        : t('Low Rush')}
                     </Text>
                   </View>
                   <Text style={styles.queueMetaText}>
                     {(selectedService.queueCount ?? 0) === 0
-                      ? 'No waiting line • Direct entry available'
+                      ? t('No waiting line • Direct entry available')
                       : (selectedService.queueCount ?? 0) === 1
-                      ? '1 person ahead • ~5 mins wait'
-                      : `${selectedService.queueCount} people ahead • ~${selectedService.estimatedWaitMinutes} mins wait`}
+                      ? t('1 person ahead • ~5 mins wait')
+                      : t('{{people}} people ahead • ~{{minutes}} mins wait', {
+                          people: selectedService.queueCount,
+                          minutes: selectedService.estimatedWaitMinutes,
+                        })}
                   </Text>
                 </View>
 
@@ -748,18 +758,18 @@ export default function Home() {
                     style={styles.routeBtn}
                     onPress={() => handleStartNavigation(selectedService)}>
                     <Icon name="navigation" size={16} color={colors.primaryAlt} />
-                    <Text style={styles.routeBtnText}>Get Directions</Text>
+                    <Text style={styles.routeBtnText}>{t('Get Directions')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.bookBtn}
                     onPress={onBookAppointment}>
                     <Icon name="calendar" size={16} color={colors.white} />
-                    <Text style={styles.bookBtnText}>Book Ticket</Text>
+                    <Text style={styles.bookBtnText}>{t('Book Ticket')}</Text>
                   </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity onPress={() => setShowServiceModal(false)} style={styles.closeModalBtn}>
-                  <Text style={styles.sheetCancel}>Close</Text>
+                  <Text style={styles.sheetCancel}>{t('Close')}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -772,7 +782,7 @@ export default function Home() {
         <View style={styles.modalOverlay}>
           <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Select Date & Time</Text>
+            <Text style={styles.sheetTitle}>{t('Select Date & Time')}</Text>
             <View style={styles.chipRow}>
               {DATE_LIST.map(date => (
                 <TouchableOpacity
@@ -795,9 +805,14 @@ export default function Home() {
                 </TouchableOpacity>
               ))}
             </View>
-            <PrimaryButton title="Continue to Booking Details" onPress={onConfirmSlot} style={styles.sheetButton} disabled={!selectedTime} />
+            <PrimaryButton
+              title={t('Continue to Booking Details')}
+              onPress={onConfirmSlot}
+              style={styles.sheetButton}
+              disabled={!selectedTime}
+            />
             <TouchableOpacity onPress={() => setShowSlotModal(false)}>
-              <Text style={styles.sheetCancel}>Cancel</Text>
+              <Text style={styles.sheetCancel}>{t('Cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -817,8 +832,10 @@ export default function Home() {
             <View style={styles.sheetHandle} />
             {paymentStep === 'details' ? (
               <>
-                <Text style={styles.sheetTitle}>Visitor Details</Text>
-                <Text style={styles.sheetSubtitle}>Review or update your details for this booking</Text>
+                <Text style={styles.sheetTitle}>{t('Visitor Details')}</Text>
+                <Text style={styles.sheetSubtitle}>
+                  {t('Review or update your details for this booking')}
+                </Text>
 
                 {selectedService && selectedTime ? (
                   <View style={styles.bookingMiniSummary}>
@@ -833,13 +850,34 @@ export default function Home() {
                   </View>
                 ) : null}
 
-                <TextField label="Full Name" value={payName} onChangeText={setPayName} placeholder="Enter full name" error={nameError} />
-                <TextField label="Email Address" value={payEmail} onChangeText={setPayEmail} keyboardType="email-address" autoCapitalize="none" placeholder="user@example.com" error={emailError} />
-                <TextField label="Phone Number" value={payPhone} onChangeText={setPayPhone} keyboardType="phone-pad" placeholder="+1 234 567 890" error={phoneError} />
+                <TextField
+                  label={t('Full Name')}
+                  value={payName}
+                  onChangeText={setPayName}
+                  placeholder={t('Enter full name')}
+                  error={nameError}
+                />
+                <TextField
+                  label={t('Email Address')}
+                  value={payEmail}
+                  onChangeText={setPayEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  placeholder="user@example.com"
+                  error={emailError}
+                />
+                <TextField
+                  label={t('Phone Number')}
+                  value={payPhone}
+                  onChangeText={setPayPhone}
+                  keyboardType="phone-pad"
+                  placeholder="+1 234 567 890"
+                  error={phoneError}
+                />
 
                 {/* Quick Gender Chips */}
                 <View style={styles.quickFieldGroup}>
-                  <Text style={styles.fieldLabel}>Gender</Text>
+                  <Text style={styles.fieldLabel}>{t('Gender')}</Text>
                   <View style={styles.chipRow}>
                     {['Male', 'Female', 'Other'].map(g => {
                       const isSelected = payGender.toLowerCase() === g.toLowerCase();
@@ -848,17 +886,25 @@ export default function Home() {
                           key={g}
                           style={[styles.dateChip, isSelected && styles.dateChipActive]}
                           onPress={() => setPayGender(g)}>
-                          <Text style={[styles.dateChipText, isSelected && styles.dateChipTextActive]}>{g}</Text>
+                          <Text style={[styles.dateChipText, isSelected && styles.dateChipTextActive]}>
+                            {t(g)}
+                          </Text>
                         </TouchableOpacity>
                       );
                     })}
                   </View>
-                  <TextField label="" value={payGender} onChangeText={setPayGender} placeholder="Or type gender" error={genderError} />
+                  <TextField
+                    label=""
+                    value={payGender}
+                    onChangeText={setPayGender}
+                    placeholder={t('Or type gender')}
+                    error={genderError}
+                  />
                 </View>
 
                 {/* Quick Purpose Suggestions */}
                 <View style={styles.quickFieldGroup}>
-                  <Text style={styles.fieldLabel}>Purpose of Visit</Text>
+                  <Text style={styles.fieldLabel}>{t('Purpose of Visit')}</Text>
                   <View style={styles.chipRow}>
                     {['General Consultation', 'Document Verification', 'Medical Checkup', 'Account Opening'].map(p => {
                       const isSelected = payPurpose === p;
@@ -867,54 +913,68 @@ export default function Home() {
                           key={p}
                           style={[styles.dateChip, isSelected && styles.dateChipActive]}
                           onPress={() => setPayPurpose(p)}>
-                          <Text style={[styles.dateChipText, isSelected && styles.dateChipTextActive]}>{p}</Text>
+                          <Text style={[styles.dateChipText, isSelected && styles.dateChipTextActive]}>
+                            {t(p)}
+                          </Text>
                         </TouchableOpacity>
                       );
                     })}
                   </View>
-                  <TextField label="" value={payPurpose} onChangeText={setPayPurpose} placeholder="Describe purpose of visit..." error={purposeError} />
+                  <TextField
+                    label=""
+                    value={payPurpose}
+                    onChangeText={setPayPurpose}
+                    placeholder={t('Describe purpose of visit...')}
+                    error={purposeError}
+                  />
                 </View>
 
-                <PrimaryButton title="Proceed to Payment Checkout" onPress={onProceedToPayment} style={styles.sheetButton} />
+                <PrimaryButton
+                  title={t('Proceed to Payment Checkout')}
+                  onPress={onProceedToPayment}
+                  style={styles.sheetButton}
+                />
                 <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
-                  <Text style={styles.sheetCancel}>Cancel</Text>
+                  <Text style={styles.sheetCancel}>{t('Cancel')}</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={styles.sheetTitle}>Payment Checkout</Text>
-                <Text style={styles.sheetSubtitle}>Complete payment to confirm your queue ticket</Text>
+                <Text style={styles.sheetTitle}>{t('Payment Checkout')}</Text>
+                <Text style={styles.sheetSubtitle}>
+                  {t('Complete payment to confirm your queue ticket')}
+                </Text>
 
                 {/* Hero Summary Card */}
                 <View style={styles.summaryCard}>
                   <View style={styles.summaryBadgeRow}>
                     <View style={styles.flexRowGap}>
                       <Icon name="file-text" size={14} color={colors.primaryAlt} />
-                      <Text style={styles.summaryBadgeText}>TICKET RESERVATION</Text>
+                      <Text style={styles.summaryBadgeText}>{t('TICKET RESERVATION')}</Text>
                     </View>
                     <View style={styles.secureBadge}>
                       <Icon name="shield" size={12} color="#15803D" />
-                      <Text style={styles.secureBadgeText}>Secure SSL</Text>
+                      <Text style={styles.secureBadgeText}>{t('Secure SSL')}</Text>
                     </View>
                   </View>
 
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Queue Ticket Fee</Text>
+                    <Text style={styles.summaryLabel}>{t('Queue Ticket Fee')}</Text>
                     <Text style={styles.summaryVal}>$5.00</Text>
                   </View>
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Service & Platform Fee</Text>
+                    <Text style={styles.summaryLabel}>{t('Service & Platform Fee')}</Text>
                     <Text style={styles.summaryVal}>$0.50</Text>
                   </View>
 
                   <View style={[styles.summaryRow, styles.summaryTotalRow]}>
-                    <Text style={styles.summaryTotalLabel}>Total Amount Due</Text>
+                    <Text style={styles.summaryTotalLabel}>{t('Total Amount Due')}</Text>
                     <Text style={styles.summaryTotalVal}>$5.50</Text>
                   </View>
                 </View>
 
                 {/* Payment Method Selector Grid */}
-                <Text style={styles.methodTitle}>Select Payment Method</Text>
+                <Text style={styles.methodTitle}>{t('Select Payment Method')}</Text>
                 <View style={styles.paymentMethodsGrid}>
                   {[
                     { key: 'Orange Money', iconName: 'smartphone', color: '#EA580C', bg: '#FFF3E0' },
@@ -948,9 +1008,9 @@ export default function Home() {
                 {selectedMethod === 'Orange Money' && (
                   <View style={styles.methodInputBox}>
                     <TextField
-                      label="Orange Money Account / Mobile No."
+                      label={t('Orange Money Account / Mobile No.')}
                       value={accountNumber}
-                      onChangeText={t => { setPaymentError(null); setAccountNumber(t); }}
+                      onChangeText={value => { setPaymentError(null); setAccountNumber(value); }}
                       keyboardType="phone-pad"
                       placeholder="+225 0700000000"
                     />
@@ -960,9 +1020,9 @@ export default function Home() {
                 {selectedMethod === 'PayPal' && (
                   <View style={styles.methodInputBox}>
                     <TextField
-                      label="PayPal Email Address"
+                      label={t('PayPal Email Address')}
                       value={paypalEmail}
-                      onChangeText={t => { setPaymentError(null); setPaypalEmail(t); }}
+                      onChangeText={value => { setPaymentError(null); setPaypalEmail(value); }}
                       keyboardType="email-address"
                       autoCapitalize="none"
                       placeholder="user@paypal.com"
@@ -973,26 +1033,26 @@ export default function Home() {
                 {(selectedMethod === 'Credit Card' || selectedMethod === 'Stripe') && (
                   <View style={styles.methodInputBox}>
                     <TextField
-                      label="Card Number"
+                      label={t('Card Number')}
                       value={cardNumber}
-                      onChangeText={t => { setPaymentError(null); setCardNumber(t); }}
+                      onChangeText={value => { setPaymentError(null); setCardNumber(value); }}
                       keyboardType="numeric"
                       placeholder="4111 2222 3333 4444"
                     />
                     <View style={styles.cardInline}>
                       <View style={styles.cardFlex}>
                         <TextField
-                          label="Expiry (MM/YY)"
+                          label={t('Expiry (MM/YY)')}
                           value={cardExpiry}
-                          onChangeText={t => { setPaymentError(null); setCardExpiry(t); }}
+                          onChangeText={value => { setPaymentError(null); setCardExpiry(value); }}
                           placeholder="12/28"
                         />
                       </View>
                       <View style={styles.cardFlex}>
                         <TextField
-                          label="CVV"
+                          label={t('CVV')}
                           value={cardCvv}
-                          onChangeText={t => { setPaymentError(null); setCardCvv(t); }}
+                          onChangeText={value => { setPaymentError(null); setCardCvv(value); }}
                           keyboardType="numeric"
                           secureTextEntry
                           placeholder="123"
@@ -1010,11 +1070,15 @@ export default function Home() {
                   </View>
                 ) : null}
 
-                <PrimaryButton title="Confirm & Pay ($5.50)" onPress={onSubmitPayment} style={styles.sheetButton} />
+                <PrimaryButton
+                  title={t('Confirm & Pay ($5.50)')}
+                  onPress={onSubmitPayment}
+                  style={styles.sheetButton}
+                />
                 <TouchableOpacity onPress={() => setPaymentStep('details')} style={styles.backBtnWrap}>
                   <View style={styles.flexRowGap}>
                     <Icon name="arrow-left" size={14} color={colors.gray} />
-                    <Text style={styles.sheetCancel}>Back to Visitor Details</Text>
+                    <Text style={styles.sheetCancel}>{t('Back to Visitor Details')}</Text>
                   </View>
                 </TouchableOpacity>
               </>

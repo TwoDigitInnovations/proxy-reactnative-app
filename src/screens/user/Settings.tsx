@@ -1,21 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PageHeader } from '../../components/PageHeader';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme/colors';
 import { Icon, type IconName } from '../../components/Icon';
 import type { RootStackParamList, SettingsStackParamList } from '../../navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<SettingsStackParamList & RootStackParamList>;
-
-const LANGUAGES: { code: 'en' | 'fr'; label: string; flag: string }[] = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-];
 
 interface MenuItemProps {
   iconName: IconName;
@@ -49,39 +45,32 @@ function SettingsMenuItem({ iconName, iconColor, iconBg, label, subtitle, onPres
 
 export default function Settings() {
   const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
   const { userDetail, logout } = useAuth();
-  const [language, setLanguage] = useState<'en' | 'fr'>('en');
-
-  useEffect(() => {
-    AsyncStorage.getItem('language').then(stored => {
-      if (stored === 'en' || stored === 'fr') setLanguage(stored);
-    });
-  }, []);
-
-  async function selectLanguage(code: 'en' | 'fr') {
-    setLanguage(code);
-    await AsyncStorage.setItem('language', code);
-  }
 
   function confirmLogout() {
-    Alert.alert('Logout', 'Are you sure you want to log out of your account?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: () => logout() },
+    Alert.alert(t('Logout'), t('Are you sure you want to log out of your account?'), [
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Log Out'), style: 'destructive', onPress: () => logout() },
     ]);
   }
 
   function confirmDeleteAccount() {
-    Alert.alert('Delete Account', 'Are you sure you want to delete your account? This action cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => logout() },
-    ]);
+    Alert.alert(
+      t('Delete Account'),
+      t('Are you sure you want to delete your account? This action cannot be undone.'),
+      [
+        { text: t('Cancel'), style: 'cancel' },
+        { text: t('Delete'), style: 'destructive', onPress: () => logout() },
+      ],
+    );
   }
 
   const initialLetter = userDetail?.name ? userDetail.name.charAt(0).toUpperCase() : 'U';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
-      <PageHeader title="Settings" />
+      <PageHeader title={t('Settings')} />
 
       {/* User Profile Card Header */}
       <View style={styles.profileCard}>
@@ -95,54 +84,34 @@ export default function Settings() {
           )}
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.userName}>{userDetail?.name || 'Customer User'}</Text>
-          <Text style={styles.userEmail}>{userDetail?.email || userDetail?.phone || 'Account Settings'}</Text>
+          <Text style={styles.userName}>{userDetail?.name || t('Customer User')}</Text>
+          <Text style={styles.userEmail}>
+            {userDetail?.email || userDetail?.phone || t('Account Settings')}
+          </Text>
           <View style={styles.roleTag}>
-            <Text style={styles.roleTagText}>Customer Account</Text>
+            <Text style={styles.roleTagText}>{t('Customer Account')}</Text>
           </View>
         </View>
         <TouchableOpacity
           style={styles.editProfileBtn}
           onPress={() => navigation.navigate('Profile')}>
-          <Text style={styles.editProfileBtnText}>Edit</Text>
+          <Text style={styles.editProfileBtnText}>{t('Edit')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Language Preference Section */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionHeaderTitle}>PREFERENCES</Text>
-        <View style={styles.languageContainer}>
-          <Text style={styles.languageLabel}>App Language</Text>
-          <View style={styles.languageRow}>
-            {LANGUAGES.map(item => {
-              const active = language === item.code;
-              return (
-                <TouchableOpacity
-                  key={item.code}
-                  activeOpacity={0.8}
-                  style={[styles.languageChip, active && styles.languageChipActive]}
-                  onPress={() => selectLanguage(item.code)}>
-                  <Text style={styles.flagText}>{item.flag}</Text>
-                  <Text style={[styles.languageChipText, active && styles.languageChipTextActive]}>
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      </View>
+      <LanguageSwitcher />
 
       {/* Account & App Settings Section */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionHeaderTitle}>ACCOUNT & HELP</Text>
-        
+        <Text style={styles.sectionHeaderTitle}>{t('ACCOUNT & HELP')}</Text>
+
         <SettingsMenuItem
           iconName="user"
           iconColor="#1D4ED8"
           iconBg="#E8F0FE"
-          label="Personal Profile"
-          subtitle="Manage your personal details and photo"
+          label={t('Personal Profile')}
+          subtitle={t('Manage your personal details and photo')}
           onPress={() => navigation.navigate('Profile')}
         />
 
@@ -150,8 +119,8 @@ export default function Settings() {
           iconName="alert-triangle"
           iconColor="#D97706"
           iconBg="#FEF3C7"
-          label="Report a Problem"
-          subtitle="Submit an issue or support ticket"
+          label={t('Report a Problem')}
+          subtitle={t('Submit an issue or support ticket')}
           onPress={() => navigation.navigate('ReportProblem' as never)}
         />
 
@@ -159,8 +128,8 @@ export default function Settings() {
           iconName="file-text"
           iconColor="#7C3AED"
           iconBg="#F3E8FF"
-          label="Terms & Conditions"
-          subtitle="Legal terms of service"
+          label={t('Terms & Conditions')}
+          subtitle={t('Legal terms of service')}
           onPress={() => navigation.navigate('TermsAndConditions')}
         />
 
@@ -168,8 +137,8 @@ export default function Settings() {
           iconName="shield"
           iconColor="#15803D"
           iconBg="#DCFCE7"
-          label="Privacy Policy"
-          subtitle="Data privacy & security policies"
+          label={t('Privacy Policy')}
+          subtitle={t('Data privacy & security policies')}
           onPress={() => navigation.navigate('PrivacyPolicy')}
           isLast={true}
         />
@@ -179,17 +148,19 @@ export default function Settings() {
       <View style={styles.dangerSection}>
         <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout} activeOpacity={0.8}>
           <Icon name="logout" size={18} color="#DC2626" />
-          <Text style={styles.logoutText}>Log Out</Text>
+          <Text style={styles.logoutText}>{t('Log Out')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.deleteButton} onPress={confirmDeleteAccount} activeOpacity={0.7}>
-          <Text style={styles.deleteText}>Delete Account</Text>
+          <Text style={styles.deleteText}>{t('Delete Account')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* App Version Footer */}
       <View style={styles.footer}>
-        <Text style={styles.versionText}>Proxi Mobile App • Version 1.0.0</Text>
+        <Text style={styles.versionText}>
+          {t('Proxi Mobile App • Version {{version}}', { version: '1.0.0' })}
+        </Text>
       </View>
     </ScrollView>
   );
@@ -300,46 +271,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: 12,
     marginTop: 4,
-  },
-  languageContainer: {
-    marginBottom: 4,
-  },
-  languageLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textDark,
-    marginBottom: 10,
-  },
-  languageRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  languageChip: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingVertical: 10,
-    backgroundColor: '#FAFAFA',
-    gap: 6,
-  },
-  languageChipActive: {
-    backgroundColor: colors.primaryAlt,
-    borderColor: colors.primaryAlt,
-  },
-  flagText: {
-    fontSize: 16,
-  },
-  languageChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textDark,
-  },
-  languageChipTextActive: {
-    color: colors.white,
   },
   menuItem: {
     flexDirection: 'row',

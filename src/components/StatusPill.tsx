@@ -1,16 +1,18 @@
 import React from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from './Text';
 import { colors } from '../theme/colors';
 
 export type AppointmentStatus = 'Pending' | 'Completed';
 
 export function StatusPill({ status, style }: { status: AppointmentStatus; style?: StyleProp<ViewStyle> }) {
+  const { t } = useTranslation();
   const completed = status === 'Completed';
   return (
     <View style={[styles.pill, completed ? styles.pillCompleted : styles.pillPending, style]}>
       <View style={[styles.dot, completed ? styles.dotCompleted : styles.dotPending]} />
-      <Text style={[styles.text, completed ? styles.textCompleted : styles.textPending]}>{status}</Text>
+      <Text style={[styles.text, completed ? styles.textCompleted : styles.textPending]}>{t(status)}</Text>
     </View>
   );
 }

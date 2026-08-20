@@ -12,6 +12,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -54,6 +55,7 @@ function parseDob(value?: string): Date | undefined {
 }
 
 export default function Profile() {
+  const { t } = useTranslation();
   const { userDetail, updateUserDetail } = useAuth();
   const { showLoading, hideLoading, showToast } = useUi();
 
@@ -94,7 +96,7 @@ export default function Profile() {
           setPhotoUri(profile.profile);
         }
       } catch (err) {
-        showToast(err instanceof ApiError ? err.message : 'Unable to load profile');
+        showToast(err instanceof ApiError ? err.message : t('Unable to load profile'));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -185,8 +187,8 @@ export default function Profile() {
     }
   }
 
-  const nameError = submitted && !name ? 'Name is required.' : undefined;
-  const emailError = submitted && !email ? 'Email is required.' : undefined;
+  const nameError = submitted && !name ? t('Name is required.') : undefined;
+  const emailError = submitted && !email ? t('Email is required.') : undefined;
 
   async function handleSave() {
     setSubmitted(true);
@@ -244,7 +246,7 @@ export default function Profile() {
         await updateUserDetail({ ...userDetail, ...updatedUser, address, latitude: lat, longitude: lng });
       }
 
-      showToast('Profile & Location updated successfully');
+      showToast(t('Profile & Location updated successfully'));
       setIsEdit(false);
       setSubmitted(false);
       setPredictions([]);
@@ -252,7 +254,7 @@ export default function Profile() {
       setNewPhoto(null);
       snapshot.current = null;
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Something went wrong');
+      showToast(err instanceof ApiError ? err.message : t('Something went wrong'));
     } finally {
       hideLoading();
     }
@@ -298,7 +300,7 @@ export default function Profile() {
           </TouchableOpacity>
 
           <Text style={styles.heroName} numberOfLines={1}>
-            {name || 'Your profile'}
+            {name || t('Your profile')}
           </Text>
           {email ? (
             <Text style={styles.heroEmail} numberOfLines={1}>
@@ -307,26 +309,26 @@ export default function Profile() {
           ) : null}
 
           <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>Customer</Text>
+            <Text style={styles.heroBadgeText}>{t('Customer')}</Text>
           </View>
 
-          {isEdit ? <Text style={styles.heroHint}>Tap the photo to change it</Text> : null}
+          {isEdit ? <Text style={styles.heroHint}>{t('Tap the photo to change it')}</Text> : null}
         </View>
 
-        <SectionCard title="Personal details">
+        <SectionCard title={t('Personal details')}>
           {isEdit ? (
             <View style={styles.fieldStack}>
               <TextField
-                label="Name"
+                label={t('Name')}
                 value={name}
                 onChangeText={setName}
                 editable
-                placeholder="Enter your full name"
+                placeholder={t('Enter your full name')}
                 error={nameError}
                 style={styles.input}
               />
               <TextField
-                label="Email"
+                label={t('Email')}
                 value={email}
                 onChangeText={setEmail}
                 editable
@@ -337,34 +339,34 @@ export default function Profile() {
                 style={styles.input}
               />
               <TextField
-                label="Phone"
+                label={t('Phone')}
                 value={phone}
                 onChangeText={setPhone}
                 editable
                 keyboardType="phone-pad"
-                placeholder="Enter your phone number"
+                placeholder={t('Enter your phone number')}
                 style={styles.input}
               />
             </View>
           ) : (
             <View>
-              <InfoRow label="Name" value={name} />
-              <InfoRow label="Email" value={email} />
-              <InfoRow label="Phone" value={phone} last />
+              <InfoRow label={t('Name')} value={name} />
+              <InfoRow label={t('Email')} value={email} />
+              <InfoRow label={t('Phone')} value={phone} last />
             </View>
           )}
         </SectionCard>
 
-        <SectionCard title="About you">
+        <SectionCard title={t('About you')}>
           {isEdit ? (
             <View style={styles.fieldStack}>
               <TouchableOpacity onPress={() => setShowDobPicker(true)} activeOpacity={0.7}>
                 <View pointerEvents="none">
                   <TextField
-                    label="Date of Birth"
+                    label={t('Date of Birth')}
                     value={dobLabel}
                     editable={false}
-                    placeholder="Select your date of birth"
+                    placeholder={t('Select your date of birth')}
                     style={styles.input}
                   />
                 </View>
@@ -380,11 +382,15 @@ export default function Profile() {
                 />
               )}
               {showDobPicker && Platform.OS === 'ios' && (
-                <PrimaryButton title="Done" onPress={() => setShowDobPicker(false)} style={styles.doneButton} />
+                <PrimaryButton
+                  title={t('Done')}
+                  onPress={() => setShowDobPicker(false)}
+                  style={styles.doneButton}
+                />
               )}
 
               <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>Gender</Text>
+                <Text style={styles.fieldLabel}>{t('Gender')}</Text>
                 <View style={styles.genderRow}>
                   {GENDER_OPTIONS.map(option => {
                     const selected = gender === option;
@@ -395,7 +401,7 @@ export default function Profile() {
                         onPress={() => setGender(option)}
                         activeOpacity={0.7}>
                         <Text style={[styles.genderChipText, selected && styles.genderChipTextSelected]}>
-                          {option}
+                          {t(option)}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -405,23 +411,23 @@ export default function Profile() {
             </View>
           ) : (
             <View>
-              <InfoRow label="Date of Birth" value={dobLabel} />
-              <InfoRow label="Gender" value={gender} last />
+              <InfoRow label={t('Date of Birth')} value={dobLabel} />
+              <InfoRow label={t('Gender')} value={gender ? t(gender) : undefined} last />
             </View>
           )}
         </SectionCard>
 
         <SectionCard
-          title="Location"
-          action={hasCoordinates ? <Text style={styles.cardCount}>Pinned</Text> : undefined}>
+          title={t('Location')}
+          action={hasCoordinates ? <Text style={styles.cardCount}>{t('Pinned')}</Text> : undefined}>
           {isEdit ? (
             <View style={styles.fieldStack}>
               <TextField
-                label="Home / City Address"
+                label={t('Home / City Address')}
                 value={address}
                 onChangeText={onChangeAddressText}
                 editable
-                placeholder="e.g. Rajajipuram, Lucknow, Uttar Pradesh"
+                placeholder={t('e.g. Rajajipuram, Lucknow, Uttar Pradesh')}
                 style={styles.input}
               />
               {predictions.length > 0 ? (
@@ -439,12 +445,12 @@ export default function Profile() {
                 </View>
               ) : null}
               <Text style={styles.locationHint}>
-                Pick a suggestion so we can match you with providers nearby.
+                {t('Pick a suggestion so we can match you with providers nearby.')}
               </Text>
             </View>
           ) : (
             <Text style={[styles.addressText, !address && styles.infoValueEmpty]}>
-              {address || 'No address added yet.'}
+              {address || t('No address added yet.')}
             </Text>
           )}
         </SectionCard>
@@ -452,15 +458,15 @@ export default function Profile() {
         {isEdit ? (
           <View style={styles.actionRow}>
             <PrimaryButton
-              title="Cancel"
+              title={t('Cancel')}
               onPress={cancelEditing}
               style={styles.secondaryButton}
               textStyle={styles.secondaryButtonText}
             />
-            <PrimaryButton title="Save Changes" onPress={handleSave} style={styles.primaryButton} />
+            <PrimaryButton title={t('Save Changes')} onPress={handleSave} style={styles.primaryButton} />
           </View>
         ) : (
-          <PrimaryButton title="Edit Profile" onPress={startEditing} style={styles.fullButton} />
+          <PrimaryButton title={t('Edit Profile')} onPress={startEditing} style={styles.fullButton} />
         )}
       </ScrollView>
     </KeyboardAvoidingView>

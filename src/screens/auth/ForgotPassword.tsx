@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Text } from '../../components/Text';
 import { TextField } from '../../components/TextField';
@@ -16,6 +17,7 @@ const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/i;
 type Props = NativeStackScreenProps<RootStackParamList, 'ForgotPassword'>;
 
 export default function ForgotPassword({ navigation }: Props) {
+  const { t } = useTranslation();
   const { showLoading, hideLoading, showToast } = useUi();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -26,14 +28,20 @@ export default function ForgotPassword({ navigation }: Props) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const emailError = submitted && !email ? 'Email is required.' : submitted && !EMAIL_PATTERN.test(email) ? 'Invalid your email' : undefined;
-  const otpError = submitted && !otp ? 'OTP is required.' : undefined;
-  const passwordError = submitted && !password ? 'Password is required.' : undefined;
-  const confirmPasswordError = submitted && !confirmPassword ? 'Confirm password is required.' : undefined;
+  const emailError = submitted && !email
+    ? t('Email is required.')
+    : submitted && !EMAIL_PATTERN.test(email)
+    ? t('Invalid your email')
+    : undefined;
+  const otpError = submitted && !otp ? t('OTP is required.') : undefined;
+  const passwordError = submitted && !password ? t('Password is required.') : undefined;
+  const confirmPasswordError = submitted && !confirmPassword
+    ? t('Confirm password is required.')
+    : undefined;
 
   async function sendOTP() {
     const res: any = await authApi.sendOTP({ email });
-    showToast(res?.data?.message ?? 'OTP sent');
+    showToast(res?.data?.message ?? t('OTP sent'));
     setToken(res?.data?.token ?? '');
     setEmail('');
     setStep(2);
@@ -41,7 +49,7 @@ export default function ForgotPassword({ navigation }: Props) {
 
   async function verifyOTP() {
     const res: any = await authApi.verifyOTP({ otp, token });
-    showToast(res?.data?.message ?? 'OTP verified');
+    showToast(res?.data?.message ?? t('OTP verified'));
     setToken(res?.data?.token ?? token);
     setOtp('');
     setStep(3);
@@ -49,11 +57,11 @@ export default function ForgotPassword({ navigation }: Props) {
 
   async function changePassword() {
     if (password !== confirmPassword) {
-      showToast("Confirm password don't match with password");
+      showToast(t("Confirm password don't match with password"));
       return;
     }
     const res: any = await authApi.changePassword({ password, token });
-    showToast(res?.data?.message ?? 'Password changed');
+    showToast(res?.data?.message ?? t('Password changed'));
     setPassword('');
     setConfirmPassword('');
     setStep(1);
@@ -73,7 +81,7 @@ export default function ForgotPassword({ navigation }: Props) {
       else await changePassword();
       setSubmitted(false);
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Something went wrong');
+      showToast(err instanceof ApiError ? err.message : t('Something went wrong'));
     } finally {
       hideLoading();
     }
@@ -88,15 +96,15 @@ export default function ForgotPassword({ navigation }: Props) {
         </TouchableOpacity>
 
         <View style={styles.welcomeBlock}>
-          <Text style={styles.welcomeText}>Forgot password</Text>
+          <Text style={styles.welcomeText}>{t('Forgot password')}</Text>
         </View>
 
         <Image source={require('../../assets/images/forgotPasswordBg.png')} style={styles.bgImage} resizeMode="contain" />
 
         {step === 1 && (
           <TextField
-            label="Email"
-            placeholder="Enter email"
+            label={t('Email')}
+            placeholder={t('Enter email')}
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -106,13 +114,19 @@ export default function ForgotPassword({ navigation }: Props) {
         )}
 
         {step === 2 && (
-          <TextField label="OTP" placeholder="**************" value={otp} onChangeText={setOtp} error={otpError} />
+          <TextField
+            label={t('OTP')}
+            placeholder="**************"
+            value={otp}
+            onChangeText={setOtp}
+            error={otpError}
+          />
         )}
 
         {step === 3 && (
           <>
             <TextField
-              label="Enter Password"
+              label={t('Enter Password')}
               placeholder="**************"
               secureTextEntry
               value={password}
@@ -120,7 +134,7 @@ export default function ForgotPassword({ navigation }: Props) {
               error={passwordError}
             />
             <TextField
-              label="Enter Confirm Password"
+              label={t('Enter Confirm Password')}
               placeholder="**************"
               secureTextEntry
               value={confirmPassword}
@@ -130,7 +144,7 @@ export default function ForgotPassword({ navigation }: Props) {
           </>
         )}
 
-        <PrimaryButton title="Save" onPress={handleSubmit} style={styles.saveButton} />
+        <PrimaryButton title={t('Save')} onPress={handleSubmit} style={styles.saveButton} />
       </ScrollView>
     </KeyboardAvoidingView>
     </SafeAreaView>

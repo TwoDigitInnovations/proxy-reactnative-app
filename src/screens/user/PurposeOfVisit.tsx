@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { Text } from '../../components/Text';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import { appointmentApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { colors } from '../../theme/colors';
@@ -19,6 +20,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function PurposeOfVisit() {
+  const { t } = useTranslation();
   const route = useRoute<RouteProp<MyAppointmentsStackParamList, 'PurposeOfVisit'>>();
   const { appointmentId } = route.params;
 
@@ -33,6 +35,8 @@ export default function PurposeOfVisit() {
         const res: any = await appointmentApi.getRequestAppointmentById(appointmentId);
         if (mounted) setAppointment(res?.data ?? null);
       } catch (err) {
+        // Store the key, not the translation, so the effect stays independent of
+        // the language and the message re-translates when it is switched.
         if (mounted) setError(err instanceof ApiError ? err.message : 'Something went wrong');
       } finally {
         if (mounted) setLoading(false);
@@ -50,18 +54,21 @@ export default function PurposeOfVisit() {
   if (error || !appointment) {
     return (
       <View style={styles.loading}>
-        <Text style={styles.errorText}>{error ?? 'Appointment not found'}</Text>
+        <Text style={styles.errorText}>{error ? t(error) : t('Appointment not found')}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      <DetailRow label="Name" value={appointment.name} />
-      <DetailRow label="Phone" value={appointment.phone} />
-      <DetailRow label="Gender" value={appointment.gender} />
-      <DetailRow label="Check-in Time" value={moment(appointment.full_date).format('DD MMM YYYY, h:mm A')} />
-      <DetailRow label="Purpose of Visit" value={appointment.purpose_of_visit} />
+      <DetailRow label={t('Name')} value={appointment.name} />
+      <DetailRow label={t('Phone')} value={appointment.phone} />
+      <DetailRow label={t('Gender')} value={t(appointment.gender)} />
+      <DetailRow
+        label={t('Check-in Time')}
+        value={moment(appointment.full_date).format('DD MMM YYYY, h:mm A')}
+      />
+      <DetailRow label={t('Purpose of Visit')} value={appointment.purpose_of_visit} />
     </ScrollView>
   );
 }

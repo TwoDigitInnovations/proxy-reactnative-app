@@ -8,12 +8,14 @@ import {
   View
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import { colors } from '../../theme/colors';
 import { reportApi } from '../../api/endpoints';
 import { ApiError } from '../../api/client';
 import { useUi } from '../../context/UiContext';
 
+// Values stay in English: they are sent to the API. Only the label is translated.
 const PROBLEM_CATEGORIES = [
   'Booking Issue',
   'Technical Bug',
@@ -23,6 +25,7 @@ const PROBLEM_CATEGORIES = [
 ];
 
 export default function ReportProblem() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const { showToast } = useUi();
 
@@ -33,11 +36,11 @@ export default function ReportProblem() {
 
   async function handleSubmit() {
     if (!subject.trim()) {
-      Alert.alert('Validation Error', 'Please enter a subject or title for your problem.');
+      Alert.alert(t('Validation Error'), t('Please enter a subject or title for your problem.'));
       return;
     }
     if (!description.trim()) {
-      Alert.alert('Validation Error', 'Please describe your problem in detail.');
+      Alert.alert(t('Validation Error'), t('Please describe your problem in detail.'));
       return;
     }
 
@@ -50,17 +53,19 @@ export default function ReportProblem() {
       });
 
       Alert.alert(
-        'Report Submitted',
-        'Thank you for reporting your issue. Our support team will review your report shortly.',
+        t('Report Submitted'),
+        t('Thank you for reporting your issue. Our support team will review your report shortly.'),
         [
           {
-            text: 'OK',
+            text: t('OK'),
             onPress: () => navigation.goBack(),
           },
         ]
       );
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Failed to submit report. Please try again.');
+      showToast(
+        err instanceof ApiError ? err.message : t('Failed to submit report. Please try again.'),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -68,13 +73,13 @@ export default function ReportProblem() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
-      <Text style={styles.heading}>Describe Your Problem</Text>
+      <Text style={styles.heading}>{t('Describe Your Problem')}</Text>
       <Text style={styles.subHeading}>
-        Please select a category and fill in the details below so our support team can assist you.
+        {t('Please select a category and fill in the details below so our support team can assist you.')}
       </Text>
 
       {/* Category Selection */}
-      <Text style={styles.label}>Select Category</Text>
+      <Text style={styles.label}>{t('Select Category')}</Text>
       <View style={styles.categoryContainer}>
         {PROBLEM_CATEGORIES.map(cat => (
           <TouchableOpacity
@@ -89,27 +94,27 @@ export default function ReportProblem() {
                 styles.categoryChipText,
                 selectedCategory === cat && styles.categoryChipTextActive
               ]}>
-              {cat}
+              {t(cat)}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {/* Subject Input */}
-      <Text style={styles.label}>Subject / Issue Title</Text>
+      <Text style={styles.label}>{t('Subject / Issue Title')}</Text>
       <TextInput
         style={styles.textInput}
-        placeholder="e.g. Unable to book appointment slot"
+        placeholder={t('e.g. Unable to book appointment slot')}
         placeholderTextColor="#9e9e9e"
         value={subject}
         onChangeText={setSubject}
       />
 
       {/* Description Input */}
-      <Text style={styles.label}>Detailed Description</Text>
+      <Text style={styles.label}>{t('Detailed Description')}</Text>
       <TextInput
         style={[styles.textInput, styles.textArea]}
-        placeholder="Please describe the issue in detail, including any error messages..."
+        placeholder={t('Please describe the issue in detail, including any error messages...')}
         placeholderTextColor="#9e9e9e"
         multiline
         numberOfLines={6}
@@ -124,7 +129,7 @@ export default function ReportProblem() {
         disabled={isSubmitting}
         onPress={handleSubmit}>
         <Text style={styles.submitButtonText}>
-          {isSubmitting ? 'Submitting Report...' : 'Submit Report'}
+          {isSubmitting ? t('Submitting Report...') : t('Submit Report')}
         </Text>
       </TouchableOpacity>
     </ScrollView>

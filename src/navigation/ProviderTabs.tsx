@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
 import HomeIcon from '../assets/tabsIcon/tabs-icon-1.svg';
@@ -28,6 +29,7 @@ const iconMap: Record<keyof ProviderTabParamList, [React.FC<SvgProps>, React.FC<
 
 export function ProviderTabs() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -43,14 +45,14 @@ export function ProviderTabs() {
         },
       })}
     >
-      <Tab.Screen name="HomeProvider" component={HomeProvider} options={{ title: 'Home' }} />
+      <Tab.Screen name="HomeProvider" component={HomeProvider} options={{ title: t('Home') }} />
       <Tab.Screen
         name="MyAppointmentsProvider"
         component={MyAppointmentsProviderStack}
-        options={{ title: 'Appointments' }}
+        options={{ title: t('Appointments') }}
       />
-      <Tab.Screen name="HistoryProvider" component={HistoryProvider} options={{ title: 'History' }} />
-      <Tab.Screen name="SettingsProvider" component={SettingsProviderStack} options={{ title: 'Settings' }} />
+      <Tab.Screen name="HistoryProvider" component={HistoryProvider} options={{ title: t('History') }} />
+      <Tab.Screen name="SettingsProvider" component={SettingsProviderStack} options={{ title: t('Settings') }} />
     </Tab.Navigator>
   );
 }

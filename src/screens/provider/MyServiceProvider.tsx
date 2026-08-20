@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import moment from 'moment';
 import { TextField } from '../../components/TextField';
@@ -22,6 +23,7 @@ interface PlacePrediction {
 }
 
 export default function MyServiceProvider() {
+  const { t } = useTranslation();
   const { showLoading, hideLoading, showToast } = useUi();
 
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
@@ -93,7 +95,7 @@ export default function MyServiceProvider() {
       const list: ServiceListing[] = Array.isArray(resData) ? resData : resData ? [resData] : [];
       setServicesList(list);
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Unable to load services');
+      showToast(err instanceof ApiError ? err.message : t('Unable to load services'));
     }
   }
 
@@ -103,25 +105,29 @@ export default function MyServiceProvider() {
   }, []);
 
   function handleDeleteService(item: ServiceListing) {
-    Alert.alert('Delete Service', `Are you sure you want to delete "${item.service_name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          showLoading();
-          try {
-            await serviceApi.deleteService(item._id);
-            showToast('Service deleted successfully');
-            await loadServicesList();
-          } catch (err) {
-            showToast(err instanceof ApiError ? err.message : 'Failed to delete service');
-          } finally {
-            hideLoading();
-          }
+    Alert.alert(
+      t('Delete Service'),
+      t('Are you sure you want to delete "{{name}}"?', { name: item.service_name }),
+      [
+        { text: t('Cancel'), style: 'cancel' },
+        {
+          text: t('Delete'),
+          style: 'destructive',
+          onPress: async () => {
+            showLoading();
+            try {
+              await serviceApi.deleteService(item._id);
+              showToast(t('Service deleted successfully'));
+              await loadServicesList();
+            } catch (err) {
+              showToast(err instanceof ApiError ? err.message : t('Failed to delete service'));
+            } finally {
+              hideLoading();
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   }
 
   function onChangeAddress(text: string) {
@@ -155,7 +161,7 @@ export default function MyServiceProvider() {
       const loc = json?.result?.geometry?.location;
       if (loc) setLocation({ lat: loc.lat, lng: loc.lng });
     } catch {
-      showToast('Unable to find that address');
+      showToast(t('Unable to find that address'));
     }
   }
 
@@ -207,9 +213,9 @@ export default function MyServiceProvider() {
     setNewPhotos(prev => prev.filter(p => p.uri !== uri));
   }
 
-  const nameError = submitted && !serviceName ? 'Service name is required.' : undefined;
-  const addressError = submitted && !address ? 'Address is required.' : undefined;
-  const categoryError = submitted && !categoryId ? 'Category is required.' : undefined;
+  const nameError = submitted && !serviceName ? t('Service name is required.') : undefined;
+  const addressError = submitted && !address ? t('Address is required.') : undefined;
+  const categoryError = submitted && !categoryId ? t('Category is required.') : undefined;
 
   async function handleSave() {
     setSubmitted(true);
@@ -234,17 +240,17 @@ export default function MyServiceProvider() {
 
       if (serviceId) {
         await serviceApi.updateService(formData);
-        showToast('Service updated successfully');
+        showToast(t('Service updated successfully'));
       } else {
         await serviceApi.createService(formData);
-        showToast('New service created successfully');
+        showToast(t('New service created successfully'));
       }
       setSubmitted(false);
       setNewPhotos([]);
       await loadServicesList();
       setViewMode('list');
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Something went wrong');
+      showToast(err instanceof ApiError ? err.message : t('Something went wrong'));
     } finally {
       hideLoading();
     }
@@ -253,7 +259,7 @@ export default function MyServiceProvider() {
   function getCategoryName(catId: any) {
     const idStr = typeof catId === 'string' ? catId : catId?._id;
     const found = categories.find(c => c._id === idStr);
-    return found ? found.name : 'Category';
+    return found ? found.name : t('Category');
   }
 
   if (viewMode === 'list') {
@@ -261,18 +267,24 @@ export default function MyServiceProvider() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.topHeader}>
           <View>
-            <Text style={styles.headerTitle}>My Services</Text>
-            <Text style={styles.headerSubtitle}>{servicesList.length} services created</Text>
+            <Text style={styles.headerTitle}>{t('My Services')}</Text>
+            <Text style={styles.headerSubtitle}>
+              {t('{{total}} services created', { total: servicesList.length })}
+            </Text>
           </View>
           <TouchableOpacity style={styles.createBtn} onPress={startAddNewService}>
-            <Text style={styles.createBtnText}>+ Add Service</Text>
+            <Text style={styles.createBtnText}>{t('+ Add Service')}</Text>
           </TouchableOpacity>
         </View>
 
         {servicesList.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <EmptyState message="No services created yet." />
-            <PrimaryButton title="+ Create First Service" onPress={startAddNewService} style={styles.firstServiceBtn} />
+            <EmptyState message={t('No services created yet.')} />
+            <PrimaryButton
+              title={t('+ Create First Service')}
+              onPress={startAddNewService}
+              style={styles.firstServiceBtn}
+            />
           </View>
         ) : (
           <View style={styles.cardList}>
@@ -300,14 +312,16 @@ export default function MyServiceProvider() {
                     </Text>
                   ) : null}
 
-                  <Text style={styles.cardSlots}>⏰ {item.service_slot?.length ?? 0} Available Slots</Text>
+                  <Text style={styles.cardSlots}>
+                    ⏰ {t('{{total}} Available Slots', { total: item.service_slot?.length ?? 0 })}
+                  </Text>
 
                   <View style={styles.cardActions}>
                     <TouchableOpacity style={styles.editBtn} onPress={() => startEditService(item)}>
-                      <Text style={styles.editBtnText}>✏️ Edit</Text>
+                      <Text style={styles.editBtnText}>✏️ {t('Edit')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteService(item)}>
-                      <Text style={styles.deleteBtnText}>🗑️ Delete</Text>
+                      <Text style={styles.deleteBtnText}>🗑️ {t('Delete')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -323,16 +337,27 @@ export default function MyServiceProvider() {
     <ScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={() => setViewMode('list')}>
-          <Text style={styles.backBtnText}>← Back to List</Text>
+          <Text style={styles.backBtnText}>{t('← Back to List')}</Text>
         </TouchableOpacity>
-        <Text style={styles.formTitle}>{serviceId ? 'Edit Service' : 'Add New Service'}</Text>
+        <Text style={styles.formTitle}>{serviceId ? t('Edit Service') : t('Add New Service')}</Text>
       </View>
 
-      <TextField label="Service Name" value={serviceName} onChangeText={setServiceName} error={nameError} />
+      <TextField
+        label={t('Service Name')}
+        value={serviceName}
+        onChangeText={setServiceName}
+        error={nameError}
+      />
 
       <View style={styles.fieldWrap}>
-        <Text style={styles.label}>Address</Text>
-        <TextInput style={styles.input} value={address} onChangeText={onChangeAddress} placeholder="Enter address" placeholderTextColor={colors.border} />
+        <Text style={styles.label}>{t('Address')}</Text>
+        <TextInput
+          style={styles.input}
+          value={address}
+          onChangeText={onChangeAddress}
+          placeholder={t('Enter address')}
+          placeholderTextColor={colors.border}
+        />
         {addressError ? <Text style={styles.error}>{addressError}</Text> : null}
         {predictions.length > 0 && (
           <View style={styles.predictionsList}>
@@ -348,7 +373,7 @@ export default function MyServiceProvider() {
       </View>
 
       <View style={styles.fieldWrap}>
-        <Text style={styles.label}>Category</Text>
+        <Text style={styles.label}>{t('Category')}</Text>
         <View style={styles.chipRow}>
           {categories.map(item => (
             <TouchableOpacity
@@ -363,7 +388,7 @@ export default function MyServiceProvider() {
       </View>
 
       <View style={styles.fieldWrap}>
-        <Text style={styles.label}>Service Slots</Text>
+        <Text style={styles.label}>{t('Service Slots')}</Text>
         <View style={styles.chipRow}>
           {slots.map(slot => (
             <TouchableOpacity key={slot} style={styles.slotChip} onPress={() => removeSlot(slot)}>
@@ -371,7 +396,7 @@ export default function MyServiceProvider() {
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.addSlotButton} onPress={() => setShowTimePicker(true)}>
-            <Text style={styles.addSlotText}>+ Add Slot</Text>
+            <Text style={styles.addSlotText}>{t('+ Add Slot')}</Text>
           </TouchableOpacity>
         </View>
         {showTimePicker && (
@@ -384,14 +409,14 @@ export default function MyServiceProvider() {
           />
         )}
         {showTimePicker && Platform.OS === 'ios' && (
-          <PrimaryButton title="Add" onPress={addSlot} style={styles.confirmSlotButton} />
+          <PrimaryButton title={t('Add')} onPress={addSlot} style={styles.confirmSlotButton} />
         )}
       </View>
 
-      <TextField label="Description" value={description} onChangeText={setDescription} multiline />
+      <TextField label={t('Description')} value={description} onChangeText={setDescription} multiline />
 
       <View style={styles.fieldWrap}>
-        <Text style={styles.label}>Photos</Text>
+        <Text style={styles.label}>{t('Photos')}</Text>
         <View style={styles.chipRow}>
           {existingPhotos.map(uri => (
             <View key={uri} style={styles.photoThumbWrap}>
@@ -417,9 +442,13 @@ export default function MyServiceProvider() {
         </View>
       </View>
 
-      <PrimaryButton title={serviceId ? 'Update Service' : 'Save Service'} onPress={handleSave} style={styles.button} />
+      <PrimaryButton
+        title={serviceId ? t('Update Service') : t('Save Service')}
+        onPress={handleSave}
+        style={styles.button}
+      />
       <TouchableOpacity style={styles.cancelBtn} onPress={() => setViewMode('list')}>
-        <Text style={styles.cancelBtnText}>Cancel</Text>
+        <Text style={styles.cancelBtnText}>{t('Cancel')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

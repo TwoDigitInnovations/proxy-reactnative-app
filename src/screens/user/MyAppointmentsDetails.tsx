@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, ScrollView, StyleSheet, View } from 'react-na
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { InfoRow, SectionCard } from '../../components/SectionCard';
@@ -14,6 +15,7 @@ import type { Appointment } from '../../types/models';
 import type { MyAppointmentsStackParamList } from '../../navigation/types';
 
 export default function MyAppointmentsDetails() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<MyAppointmentsStackParamList>>();
   const route = useRoute<RouteProp<MyAppointmentsStackParamList, 'MyAppointmentsDetails'>>();
   const { appointmentId } = route.params;
@@ -29,6 +31,8 @@ export default function MyAppointmentsDetails() {
         const res: any = await appointmentApi.getRequestAppointmentById(appointmentId);
         if (mounted) setAppointment(res?.data ?? null);
       } catch (err) {
+        // Store the key, not the translation, so the effect stays independent of
+        // the language and the message re-translates when it is switched.
         if (mounted) setError(err instanceof ApiError ? err.message : 'Something went wrong');
       } finally {
         if (mounted) setLoading(false);
@@ -53,13 +57,13 @@ export default function MyAppointmentsDetails() {
         <View style={styles.errorIconCircle}>
           <Text style={styles.errorIcon}>!</Text>
         </View>
-        <Text style={styles.errorText}>{error ?? 'Appointment not found'}</Text>
+        <Text style={styles.errorText}>{error ? t(error) : t('Appointment not found')}</Text>
       </View>
     );
   }
 
   const provider = appointment.service_provider;
-  const providerName = provider?.name ?? 'Service Provider';
+  const providerName = provider?.name ?? t('Service Provider');
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -87,39 +91,44 @@ export default function MyAppointmentsDetails() {
       </View>
 
       <SectionCard
-        title="Appointment"
+        title={t('Appointment')}
         action={
           appointment.ticketNumber ? <Text style={styles.cardAction}>#{appointment.ticketNumber}</Text> : undefined
         }>
-        <InfoRow label="Date & time" value={moment(appointment.full_date).format('DD MMM YYYY, h:mm A')} />
-        <InfoRow label="Booked for" value={appointment.name} />
-        <InfoRow label="Booked on" value={moment(appointment.createdAt).format('DD MMM YYYY')} last />
+        <InfoRow
+          label={t('Date & time')}
+          value={moment(appointment.full_date).format('DD MMM YYYY, h:mm A')}
+        />
+        <InfoRow label={t('Booked for')} value={appointment.name} />
+        <InfoRow label={t('Booked on')} value={moment(appointment.createdAt).format('DD MMM YYYY')} last />
       </SectionCard>
 
-      <SectionCard title="Purpose of visit">
+      <SectionCard title={t('Purpose of visit')}>
         <Text style={[styles.bodyText, !appointment.purpose_of_visit && styles.bodyTextEmpty]}>
-          {appointment.purpose_of_visit || 'No purpose added.'}
+          {appointment.purpose_of_visit || t('No purpose added.')}
         </Text>
       </SectionCard>
 
       {provider?.about_us ? (
-        <SectionCard title="About the provider">
+        <SectionCard title={t('About the provider')}>
           <Text style={styles.bodyText}>{provider.about_us}</Text>
         </SectionCard>
       ) : null}
 
       {appointment.paymentMethod ? (
         <SectionCard
-          title="Payment receipt"
-          action={<Text style={styles.cardAction}>{appointment.paymentStatus ?? 'Completed'}</Text>}>
-          <InfoRow label="Method" value={appointment.paymentMethod} />
-          <InfoRow label="Amount" value={`$${appointment.paymentAmount?.toFixed(2) ?? '5.50'}`} />
-          <InfoRow label="Transaction ID" value={appointment.transactionId} last />
+          title={t('Payment receipt')}
+          action={
+            <Text style={styles.cardAction}>{t(appointment.paymentStatus ?? 'Completed')}</Text>
+          }>
+          <InfoRow label={t('Method')} value={appointment.paymentMethod} />
+          <InfoRow label={t('Amount')} value={`$${appointment.paymentAmount?.toFixed(2) ?? '5.50'}`} />
+          <InfoRow label={t('Transaction ID')} value={appointment.transactionId} last />
         </SectionCard>
       ) : null}
 
       <PrimaryButton
-        title="View Purpose of Visit"
+        title={t('View Purpose of Visit')}
         style={styles.button}
         onPress={() => navigation.navigate('PurposeOfVisit', { appointmentId })}
       />

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Text } from './Text';
 import { contentApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
@@ -43,6 +44,7 @@ interface LegalDocumentProps {
 }
 
 export function LegalDocument({ field, fallbackSections, errorLabel, footer }: LegalDocumentProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const mounted = useRef(true);
   const fallbackBlocks = useRef(sectionsToBlocks(fallbackSections)).current;
@@ -61,12 +63,16 @@ export function LegalDocument({ field, fallbackSections, errorLabel, footer }: L
       setBlocks(isPublishedContent(parsed) ? parsed : fallbackBlocks);
     } catch (err) {
       if (!mounted.current) return;
-      setError(err instanceof ApiError ? err.message : `Unable to load the latest ${errorLabel}.`);
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t('Unable to load the latest {{document}}.', { document: errorLabel }),
+      );
       setBlocks(fallbackBlocks);
     } finally {
       if (mounted.current) setLoading(false);
     }
-  }, [field, errorLabel, fallbackBlocks]);
+  }, [field, errorLabel, fallbackBlocks, t]);
 
   useEffect(() => {
     mounted.current = true;
@@ -91,9 +97,11 @@ export function LegalDocument({ field, fallbackSections, errorLabel, footer }: L
 
       {error ? (
         <View style={styles.notice}>
-          <Text style={styles.noticeText}>{error} Showing the version included with this app.</Text>
+          <Text style={styles.noticeText}>
+            {error} {t('Showing the version included with this app.')}
+          </Text>
           <TouchableOpacity onPress={load} accessibilityRole="button" hitSlop={styles.hitSlop}>
-            <Text style={styles.noticeAction}>Retry</Text>
+            <Text style={styles.noticeAction}>{t('Retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -102,7 +110,9 @@ export function LegalDocument({ field, fallbackSections, errorLabel, footer }: L
         <Block key={`${block.type}-${index}`} block={block} />
       ))}
 
-      <Text style={styles.lastUpdated}>Last updated {LEGAL_LAST_UPDATED}</Text>
+      <Text style={styles.lastUpdated}>
+        {t('Last updated {{date}}', { date: LEGAL_LAST_UPDATED })}
+      </Text>
 
       {footer ? <Text style={styles.footer}>{footer}</Text> : null}
     </ScrollView>

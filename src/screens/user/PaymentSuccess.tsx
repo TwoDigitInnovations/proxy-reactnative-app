@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../components/Text';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -12,6 +13,7 @@ import type { Appointment } from '../../types/models';
 import type { RootStackParamList } from '../../navigation/types';
 
 export default function PaymentSuccess() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'PaymentSuccess'>>();
   const { appointmentId } = route.params;
@@ -27,6 +29,8 @@ export default function PaymentSuccess() {
         const res: any = await appointmentApi.getRequestAppointmentById(appointmentId);
         if (mounted) setAppointment(res?.data ?? null);
       } catch (err) {
+        // Store the key, not the translation, so the effect stays independent of
+        // the language and the message re-translates when it is switched.
         if (mounted) setError(err instanceof ApiError ? err.message : 'Something went wrong');
       } finally {
         if (mounted) setLoading(false);
@@ -41,7 +45,7 @@ export default function PaymentSuccess() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primaryAlt} />
-        <Text style={styles.loadingText}>Fetching ticket details...</Text>
+        <Text style={styles.loadingText}>{t('Fetching ticket details...')}</Text>
       </View>
     );
   }
@@ -50,15 +54,19 @@ export default function PaymentSuccess() {
     return (
       <View style={styles.loadingContainer}>
         <Icon name="alert-triangle" size={40} color="#DC2626" />
-        <Text style={styles.errorText}>{error ?? 'Appointment not found'}</Text>
-        <PrimaryButton title="Go to Home" style={styles.errButton} onPress={() => navigation.navigate('Tabs')} />
+        <Text style={styles.errorText}>{error ? t(error) : t('Appointment not found')}</Text>
+        <PrimaryButton
+          title={t('Go to Home')}
+          style={styles.errButton}
+          onPress={() => navigation.navigate('Tabs')}
+        />
       </View>
     );
   }
 
   const serviceName = typeof appointment.service === 'object' && appointment.service?.service_name
     ? appointment.service.service_name
-    : 'Queue Reservation';
+    : t('Queue Reservation');
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
@@ -69,8 +77,8 @@ export default function PaymentSuccess() {
             <Icon name="check-circle" size={42} color="#16A34A" />
           </View>
         </View>
-        <Text style={styles.title}>Appointment Confirmed!</Text>
-        <Text style={styles.subtitle}>Your queue ticket reservation is secured</Text>
+        <Text style={styles.title}>{t('Appointment Confirmed!')}</Text>
+        <Text style={styles.subtitle}>{t('Your queue ticket reservation is secured')}</Text>
       </View>
 
       {/* Ticket Pass Card */}
@@ -78,12 +86,12 @@ export default function PaymentSuccess() {
         {/* Ticket Top Header */}
         <View style={styles.ticketHeader}>
           <View style={styles.ticketBadgeWrap}>
-            <Text style={styles.ticketBadgeLabel}>OFFICIAL QUEUE TICKET</Text>
+            <Text style={styles.ticketBadgeLabel}>{t('OFFICIAL QUEUE TICKET')}</Text>
             <Text style={styles.ticketNumberText}>#{appointment.ticketNumber || 'PROXI-884'}</Text>
           </View>
           <View style={styles.statusChip}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusChipText}>{appointment.status || 'Confirmed'}</Text>
+            <Text style={styles.statusChipText}>{t(appointment.status || 'Confirmed')}</Text>
           </View>
         </View>
 
@@ -93,12 +101,12 @@ export default function PaymentSuccess() {
         <View style={styles.timeMetaCard}>
           <View style={styles.metaCol}>
             <Icon name="calendar" size={14} color={colors.primaryAlt} />
-            <Text style={styles.metaValText}>{appointment.date || 'Today'}</Text>
+            <Text style={styles.metaValText}>{appointment.date || t('Today')}</Text>
           </View>
           <View style={styles.metaDivider} />
           <View style={styles.metaCol}>
             <Icon name="clock" size={14} color={colors.primaryAlt} />
-            <Text style={styles.metaValText}>{appointment.time || 'Scheduled Slot'}</Text>
+            <Text style={styles.metaValText}>{appointment.time || t('Scheduled Slot')}</Text>
           </View>
         </View>
 
@@ -111,26 +119,26 @@ export default function PaymentSuccess() {
 
         {/* Visitor Details Section */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionHeaderTitle}>VISITOR INFORMATION</Text>
+          <Text style={styles.sectionHeaderTitle}>{t('VISITOR INFORMATION')}</Text>
 
           <View style={styles.gridRow}>
             <View style={styles.gridCol}>
-              <Text style={styles.gridLabel}>Visitor Name</Text>
+              <Text style={styles.gridLabel}>{t('Visitor Name')}</Text>
               <Text style={styles.gridVal}>{appointment.name}</Text>
             </View>
             <View style={styles.gridCol}>
-              <Text style={styles.gridLabel}>Phone Number</Text>
+              <Text style={styles.gridLabel}>{t('Phone Number')}</Text>
               <Text style={styles.gridVal}>{appointment.phone}</Text>
             </View>
           </View>
 
           <View style={styles.gridRow}>
             <View style={styles.gridCol}>
-              <Text style={styles.gridLabel}>Gender</Text>
-              <Text style={styles.gridVal}>{appointment.gender}</Text>
+              <Text style={styles.gridLabel}>{t('Gender')}</Text>
+              <Text style={styles.gridVal}>{t(appointment.gender)}</Text>
             </View>
             <View style={styles.gridCol}>
-              <Text style={styles.gridLabel}>Purpose of Visit</Text>
+              <Text style={styles.gridLabel}>{t('Purpose of Visit')}</Text>
               <Text style={styles.gridVal} numberOfLines={1}>{appointment.purpose_of_visit}</Text>
             </View>
           </View>
@@ -138,10 +146,10 @@ export default function PaymentSuccess() {
 
         {/* Payment Summary Section */}
         <View style={styles.paymentSection}>
-          <Text style={styles.sectionHeaderTitle}>PAYMENT RECEIPT</Text>
+          <Text style={styles.sectionHeaderTitle}>{t('PAYMENT RECEIPT')}</Text>
 
           <View style={styles.receiptRow}>
-            <Text style={styles.receiptLabel}>Payment Method</Text>
+            <Text style={styles.receiptLabel}>{t('Payment Method')}</Text>
             <View style={styles.receiptMethodWrap}>
               <Icon name="credit-card" size={14} color={colors.textDark} />
               <Text style={styles.receiptVal}>{appointment.paymentMethod || 'Orange Money'}</Text>
@@ -149,22 +157,24 @@ export default function PaymentSuccess() {
           </View>
 
           <View style={styles.receiptRow}>
-            <Text style={styles.receiptLabel}>Amount Paid</Text>
+            <Text style={styles.receiptLabel}>{t('Amount Paid')}</Text>
             <Text style={styles.receiptAmountVal}>
               ${appointment.paymentAmount ? appointment.paymentAmount.toFixed(2) : '5.50'}
             </Text>
           </View>
 
           <View style={styles.receiptRow}>
-            <Text style={styles.receiptLabel}>Transaction Reference</Text>
+            <Text style={styles.receiptLabel}>{t('Transaction Reference')}</Text>
             <Text style={styles.receiptValSmall}>{appointment.transactionId || 'TXN-98214-77'}</Text>
           </View>
 
           <View style={styles.receiptRow}>
-            <Text style={styles.receiptLabel}>Payment Status</Text>
+            <Text style={styles.receiptLabel}>{t('Payment Status')}</Text>
             <View style={styles.completedBadge}>
               <Icon name="check-circle" size={12} color="#15803D" />
-              <Text style={styles.completedBadgeText}>{appointment.paymentStatus || 'Completed'}</Text>
+              <Text style={styles.completedBadgeText}>
+                {t(appointment.paymentStatus || 'Completed')}
+              </Text>
             </View>
           </View>
         </View>
@@ -173,7 +183,7 @@ export default function PaymentSuccess() {
       {/* Primary Action Buttons */}
       <View style={styles.buttonGroup}>
         <PrimaryButton
-          title="Return to Home Screen"
+          title={t('Return to Home Screen')}
           style={styles.homeButton}
           onPress={() => navigation.navigate('Tabs')}
         />
@@ -181,7 +191,7 @@ export default function PaymentSuccess() {
           style={styles.historyLink}
           onPress={() => navigation.navigate('Tabs', { screen: 'History' } as any)}>
           <Icon name="file-text" size={16} color={colors.primaryAlt} />
-          <Text style={styles.historyLinkText}>View All My Appointments</Text>
+          <Text style={styles.historyLinkText}>{t('View All My Appointments')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
